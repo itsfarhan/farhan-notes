@@ -32,7 +32,8 @@ const sidebars: SidebarsConfig = {
         'kubernetes/index',
         'kubernetes/Kubernetes-Beginnings',
         'kubernetes/Kubernetes-Architecture',
-        'kubernetes/Pods'
+        'kubernetes/Pods',
+        'kubernetes/Services'
       ],
     },
     // {
