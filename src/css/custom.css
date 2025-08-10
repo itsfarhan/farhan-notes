@@ -1,0 +1,549 @@
+/**
+ * Ultra-Modern Dark Theme with Advanced Animations
+ * Powered by shadcn/ui, GSAP, Lenis, Framer Motion, and Three.js
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* CSS Variables for the ultra-dark theme (shadcn/ui compatible) */
+
+:root {
+  /* Ultra Dark Theme - Background hsl(0 0% 9%) */
+  --background: 0 0% 9%;
+  --foreground: 210 20% 98%;
+  
+  /* Card & Surface Colors */
+  --card: 215 27% 17%;
+  --card-foreground: 210 20% 98%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 210 20% 98%;
+  
+  /* Primary Colors (Emerald) */
+  --primary: 142 76% 36%;
+  --primary-foreground: 0 0% 9%;
+  
+  /* Navbar Colors */
+  --ifm-navbar-background-color: hsl(0 0% 9%);
+  --ifm-navbar-link-color: hsl(210 20% 98%);
+  --ifm-navbar-link-hover-color: hsl(142 76% 36%);
+  
+  /* Footer Colors - Match Header */
+  --ifm-footer-background-color: hsl(0 0% 9%);
+  --ifm-footer-color: hsl(210 20% 98%);
+  --ifm-footer-link-color: hsl(210 20% 85%);
+  --ifm-footer-link-hover-color: hsl(142 76% 36%);
+  --ifm-footer-title-color: hsl(210 20% 98%);
+  
+  /* Secondary Colors */
+  --secondary: 217 32% 17%;
+  --secondary-foreground: 210 20% 98%;
+  
+  /* Muted Colors */
+  --muted: 215 27% 17%;
+  --muted-foreground: 217 10% 64%;
+  
+  /* Accent Colors */
+  --accent: 215 27% 17%;
+  --accent-foreground: 210 20% 98%;
+  
+  /* Destructive Colors */
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 210 20% 98%;
+  
+  /* Border & Input */
+  --border: 217 32% 17%;
+  --input: 217 32% 17%;
+  --ring: 142 76% 36%;
+  
+  /* Border Radius */
+  --radius: 0.75rem;
+  
+  /* Legacy Docusaurus Colors */
+  --ifm-color-primary: #10b981;
+  --ifm-color-primary-dark: #059669;
+  --ifm-color-primary-darker: #047857;
+  --ifm-color-primary-darkest: #065f46;
+  --ifm-color-primary-light: #34d399;
+  --ifm-color-primary-lighter: #6ee7b7;
+  --ifm-color-primary-lightest: #a7f3d0;
+  
+  /* Background Colors for Docusaurus */
+  --ifm-background-color: hsl(var(--background));
+  --ifm-background-surface-color: hsl(var(--card));
+  --ifm-color-emphasis-200: hsl(var(--border));
+  --ifm-color-emphasis-600: hsl(var(--muted-foreground));
+  --ifm-color-emphasis-900: hsl(var(--foreground));
+  
+  /* Typography */
+  --ifm-code-font-size: 97%;
+  --ifm-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', 'Source Code Pro', monospace;
+  
+  /* Advanced Effects */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: blur(24px);
+  
+  /* Animation Easings */
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
+  
+  /* Performance optimizations */
+  --transform-gpu: translateZ(0);
+}
+
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #19876f;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #2de0b8;
+  --ifm-color-primary-lightest: #3ef1cb;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.hero {
+  background: var(--custom-hero-bg) !important;
+  color: #fff;
+  padding: 3.2rem 0 2.2rem 0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: none;
+  font-family: var(--ifm-font-family-base);
+  margin-bottom: 1.5rem;
+}
+
+
+.hero__title {
+  font-size: 2.6rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+}
+
+
+.hero__subtitle {
+  font-size: 1.1rem;
+  font-weight: 400;
+  max-width: 520px;
+  margin: 0 auto;
+  opacity: 0.78;
+  font-family: inherit;
+}
+
+
+.button {
+  border-radius: var(--custom-border-radius);
+  padding: 10px 22px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  transition: all 0.18s cubic-bezier(.4,0,.2,1);
+  box-shadow: none;
+}
+
+.button:hover {
+  background: var(--ifm-color-primary-dark);
+  color: #fff;
+  box-shadow: var(--custom-shadow);
+  transform: translateY(-1px) scale(1.016);
+}
+
+.footer {
+  background: var(--custom-footer-bg) !important;
+  color: #fff !important;
+  border-top: #1fa588;
+  font-size: 0.9rem;
+  padding: 0.18rem 0 0.18rem 0;
+  display: contents;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  box-shadow: #19876f;
+}
+
+.footer__links {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.0rem;
+}
+
+.footer__link-item {
+  color: #fff !important;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+  font-size: 0.89rem;
+  padding: 0 0.22rem;
+  line-height: 1.1;
+  border-radius: 4px;
+}
+
+.footer__link-item:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.04);
+}
+
+.footer__copyright {
+  width: 100%;
+  text-align: center;
+  font-size: 0.74rem;
+  color: #bdbdbd;
+  margin: 0.03rem 0 0 0;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
+
+
+.footer__link-item {
+  color: #fff !important;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.button--secondary {
+  background-color: transparent;
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
+}
+
+.button--secondary:hover {
+  background-color: var(--ifm-color-primary);
+  color: #fff;
+}
+
+/* Award-Winning Ultra-Modern Base Styles */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  
+  /* Force ultra-dark theme for awwwards design */
+  .awwwards-homepage,
+  .minimal-homepage {
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  .awwwards-homepage .navbar,
+  .awwwards-homepage .footer,
+  .minimal-homepage .navbar,
+  .minimal-homepage .footer {
+    display: none !important;
+  }
+  
+  /* Typography enhancements */
+  h1, h2, h3, h4, h5, h6 {
+    font-feature-settings: 'ss01', 'ss02';
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+  }
+  
+  /* Selection styling */
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(var(--primary-foreground));
+  }
+  
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.6);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.8);
+  }
+}
+
+/* Glass Morphism Components */
+@layer components {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+  }
+  
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Advanced Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px hsl(var(--primary) / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.8), 0 0 30px hsl(var(--primary) / 0.3);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+  
+  .animate-gradient-x {
+    animation: gradient-x 8s ease infinite;
+    background-size: 200% 200%;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+  
+  .transform-gpu {
+    transform: var(--transform-gpu);
+  }
+  
+  /* Advanced text effects */
+  .text-glow {
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--primary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.will-change-scroll {
+  will-change: scroll-position;
+}
+
+/* Enhanced focus states for accessibility */
+.focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .animate-float,
+  .animate-glow,
+  .animate-shimmer,
+  .animate-gradient-x,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 217 32% 30%;
+    --muted-foreground: 217 10% 80%;
+  }
+}
+
+/* Mobile cursor hiding */
+@media (hover: none) and (pointer: coarse) {
+  .custom-cursor {
+    display: none !important;
+  }
+}
+
+/* Modern Footer Styles */
+.modern-footer {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--card)) 100%);
+  border-top: 1px solid hsl(var(--border) / 0.1);
+}
+
+.footer-brand-icon {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.2);
+}
+
+.footer-social-icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.footer-social-icon:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px hsl(var(--primary) / 0.25);
+}
+
+/* Responsive typography scaling */
+@media (max-width: 768px) {
+  .awwwards-homepage {
+    font-size: 14px;
+  }
+  
+  .awwwards-homepage h1 {
+    font-size: clamp(3rem, 8vw, 6rem) !important;
+  }
+  
+  .awwwards-homepage .hero-subtitle {
+    font-size: clamp(1rem, 4vw, 1.5rem) !important;
+  }
+  
+  /* Mobile footer adjustments */
+  .modern-footer .footer-content {
+    text-align: center;
+  }
+  
+  .modern-footer .footer-links {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* ===================================
+   MINIMAL FOOTER STYLES
+   =================================== */
+
+/* Footer Background - Match Header */
+.footer.footer--dark {
+  background: hsl(0 0% 9%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 1rem 0 !important;
+  min-height: auto !important;
+}
+
+/* Remove all the ugly column spacing */
+.footer__links {
+  display: none !important;
+}
+
+/* Simple one-line footer */
+.footer__copyright {
+  color: hsl(210 20% 70%) !important;
+  font-size: 0.875rem !important;
+  text-align: center !important;
+  padding: 1rem 2rem !important;
+  margin: 0 !important;
+  border: none !important;
+  line-height: 1.6 !important;
+}
+
+.footer__copyright a {
+  color: hsl(142 76% 36%) !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease !important;
+  margin: 0 0.25rem !important;
+}
+
+.footer__copyright a:hover {
+  color: hsl(142 76% 50%) !important;
+  text-decoration: underline !important;
+}
+
+/* Mobile responsive */
+@media screen and (max-width: 768px) {
+  .footer__copyright {
+    font-size: 0.8125rem !important;
+    padding: 1rem !important;
+    line-height: 1.8 !important;
+  }
+}

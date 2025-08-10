@@ -1,0 +1,24 @@
+hello:
+  label: Hello
+  permalink: /tags/hello
+  description: Introduction and welcome posts
+
+programming:
+  label: Programming
+  permalink: /tags/programming
+  description: Posts about programming and software development
+
+cloud:
+  label: Cloud
+  permalink: /tags/cloud
+  description: Posts about cloud computing and AWS
+
+Kubernetes:
+  label: Kubernetes
+  permalink: /tags/Kubernetes
+  description: Posts about Kubernetes and container orchestration
+
+tools:
+  label: Tools
+  permalink: /tags/tools
+  description: Posts about development tools and utilities
