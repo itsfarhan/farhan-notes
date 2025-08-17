@@ -36,6 +36,13 @@ const sidebars: SidebarsConfig = {
         'kubernetes/Services'
       ],
     },
+    {
+      type:'category',
+      label: 'SQL',
+      items:[
+        'sql/sql101'
+      ],
+    },
     // {
     //   type: 'category',
     //   label: 'Concepts & Theories',
