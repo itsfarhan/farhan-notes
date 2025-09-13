@@ -1,7 +1,3 @@
----
-sidebar_position: 1
----
-
 # Java Basic & Advance Notes
 
 These are my personal notes with code examples for quick reference.
