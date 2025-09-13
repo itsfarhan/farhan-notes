@@ -8,6 +8,8 @@ There are 2 types of components:
 1. **Control Plane/Master Node**
 2. **Worker Node/Data Node**
 
+More about nodes -> [Kubernetes beginnings](./Kubernetes-Beginnings.md)
+
 ### Master Node
 
 The master node consists of 5 main components:
