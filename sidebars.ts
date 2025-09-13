@@ -14,7 +14,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Java',
       items: [
-        'java/index',
+        'java/java',
       ],
     },
     {
@@ -33,7 +33,14 @@ const sidebars: SidebarsConfig = {
         'kubernetes/Kubernetes-Beginnings',
         'kubernetes/Kubernetes-Architecture',
         'kubernetes/Pods',
-        'kubernetes/Services'
+        'kubernetes/Replicasets',
+        'kubernetes/Deployments',
+        'kubernetes/Daemonsets',
+        'kubernetes/Services',
+        'kubernetes/Ingress',
+        'kubernetes/Configmaps-and-Secrets',
+        'kubernetes/Volumes',
+        'kubernetes/Security'
       ],
     },
     {
@@ -43,11 +50,31 @@ const sidebars: SidebarsConfig = {
         'sql/sql101'
       ],
     },
+    {
+      type: 'category',
+      label: 'System Design',
+      items: [
+        'systemdesign/Basics',
+        'systemdesign/HLD',
+        'systemdesign/Networking Basics',
+        'systemdesign/Databases and Storage',
+        'systemdesign/Concurrency and Parallelism',
+        'systemdesign/API Design',        
+        'systemdesign/Designing Reliable Systems',
+        'systemdesign/Designing Scalable Systems',
+        'systemdesign/Distributed Systems',
+        'systemdesign/Microservices',
+        'systemdesign/Event Driven Systems',
+        'systemdesign/High Availability and Disaster Recovery',
+        'systemdesign/Object Oriented Principles',
+        'systemdesign/Design Patterns',
+        ],
+    },
     // {
     //   type: 'category',
-    //   label: 'Concepts & Theories',
+    //   label: 'Tools',
     //   items: [
-    //     'concepts/index',
+    //     'tools/index',
     //   ],
     // },
   ],
