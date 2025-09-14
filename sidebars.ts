@@ -14,6 +14,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Java',
       items: [
+        'java/index',
         'java/java',
       ],
     },
@@ -49,6 +50,7 @@ const sidebars: SidebarsConfig = {
       type:'category',
       label: 'SQL',
       items:[
+        'sql/index',
         'sql/sql101'
       ],
     },
@@ -56,6 +58,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'System Design',
       items: [
+        'systemdesign/index',
         'systemdesign/Basics',
         'systemdesign/HLD',
         'systemdesign/Networking Basics',
