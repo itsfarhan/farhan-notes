@@ -40,7 +40,9 @@ const sidebars: SidebarsConfig = {
         'kubernetes/Ingress',
         'kubernetes/Configmaps-and-Secrets',
         'kubernetes/Volumes',
-        'kubernetes/Security'
+        'kubernetes/Security',
+        'kubernetes/Probes',
+        'kubernetes/Other-Concepts'
       ],
     },
     {
