@@ -17,6 +17,7 @@ Notes on important concepts, theories, and methodologies in Kubernetes.
 - [ReplicaSets](./Replicasets.md) - Pod replication and self-healing
 - [Deployments](./Deployments.md) - Declarative updates and rollbacks
 - [DaemonSets](./Daemonsets.md) - Node agents and system services
+- [Probes](./Probes.md) - Health checks and monitoring
 
 ### Storage & Configuration
 - [Volumes](./Volumes.md) - Persistent storage and data management
@@ -28,3 +29,6 @@ Notes on important concepts, theories, and methodologies in Kubernetes.
 
 ### Security & Management
 - [Security](./Security.md) - Authentication, authorization, and admission control
+
+### Additional Topics
+- [Other Concepts](./Other-Concepts.md) - Additional Kubernetes concepts and features
