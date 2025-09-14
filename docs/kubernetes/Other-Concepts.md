@@ -1,4 +1,4 @@
-# Kubernetes Other Concepts - Simple Notes
+# Kubernetes Other Concepts
 
 ## Table of Contents
 - [Annotations](#annotations)
