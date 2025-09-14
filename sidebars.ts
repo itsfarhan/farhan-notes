@@ -14,7 +14,8 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Java',
       items: [
-        'java/index'
+        'java/index',
+        'java/java-notes'
       ],
     },
     {
