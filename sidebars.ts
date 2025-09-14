@@ -14,8 +14,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Java',
       items: [
-        'java/index',
-        'java/java',
+        'java/index'
       ],
     },
     {
@@ -23,7 +22,7 @@ const sidebars: SidebarsConfig = {
       label: 'AWS',
       items: [
         'aws/index',
-        'aws/aws-s3',
+        'aws/aws-s3'
       ],
     },
     {

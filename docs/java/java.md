@@ -1,4 +1,4 @@
-# Java Basic & Advance Notes
+# Java Notes
 
 These are my personal notes with code examples for quick reference.
 

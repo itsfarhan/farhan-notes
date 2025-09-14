@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Java
+# JAVA
 
 My Personal notes on Java programming language concepts and features.
 
