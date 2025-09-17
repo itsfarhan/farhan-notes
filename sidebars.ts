@@ -43,7 +43,8 @@ const sidebars: SidebarsConfig = {
         'kubernetes/Volumes',
         'kubernetes/Security',
         'kubernetes/Probes',
-        'kubernetes/Other-Concepts'
+        'kubernetes/Other-Concepts',
+        'kubernetes/Exercises/exercises'
       ],
     },
     {
