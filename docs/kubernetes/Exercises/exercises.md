@@ -9,6 +9,9 @@
 - [Pod Restart Policy](#pod-restart-policy)
 - [Pod Scheduling](#pod-scheduling)
 - [Service Accounts](#service-accounts)
+- [Deployment Rollbacks](#deployment-rollbacks)
+- [Rollout Strategies](#rollout-strategies)
+- [Taints and Tolerations](#taints-and-tolerations)
 
 ## Basic Commands
 
@@ -545,3 +548,448 @@ command terminated with exit code 1
 ```
 
 This confirms that the service account token is not mounted to the pod, providing better security.
+
+## Deployment Rollbacks
+
+### Rollback a Deployment
+Create a deployment named "apache" that uses the image httpd.
+
+```bash
+kubectl create deploy apache --image httpd
+
+kubectl get deploy,po
+```
+
+**Change the image from httpd to httpd:2.4.54. List the events of the replicasets in the cluster:**
+```bash
+kubectl set image deploy/apache httpd=httpd:2.4.54
+
+kubectl describe rs
+```
+
+**Roll back to a previous version of the deployment (the deployment with the image httpd):**
+```bash
+kubectl rollout history deploy apache
+
+kubectl rollout undo deploy apache
+
+kubectl rollout status deploy apache
+```
+
+## Rollout Strategies
+
+### Change Rollout Strategy
+Create a deployment named source-ip-app that uses the image registry.k8s.io/echoserver:1.4.
+
+```bash
+kubectl create deploy source-ip-app --image registry.k8s.io/echoserver:1.4
+
+kubectl get deploy,po
+```
+
+**For the deployment named source-ip-app, change the rollout strategy to "Recreate":**
+```bash
+# Edit the deployment and change the rollout strategy to recreate
+kubectl edit deploy source-ip-app
+```
+
+**In the deployment YAML, modify the 'strategy'. Save and quit to apply the changes:**
+```yaml
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 5
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: source-ip-app
+  strategy:
+    type: Recreate
+```
+
+**Verify the strategy change:**
+```bash
+kubectl get deploy source-ip-app -o yaml | grep strategy -A3
+```
+
+**Change the image used in the source-ip-app deployment to registry.k8s.io/echoserver:1.3:**
+```bash
+# Change the image used for the 'source-ip-app' deployment
+kubectl set image deploy source-ip-app echoserver=registry.k8s.io/echoserver:1.3
+
+# Quickly check the pod as they recreate. Notice how the old version of the pod is deleted immediately, not waiting for the new pods to create.
+kubectl get po
+```
+
+## Taints and Tolerations
+
+### What are Taints and Tolerations?
+Taints and tolerations are mechanisms in Kubernetes that work together to ensure that pods are not scheduled onto inappropriate nodes. Taints are applied to nodes, while tolerations are applied to pods. A node with a taint will repel any pod that does not have a matching toleration.
+
+### List Node Taints
+**List the taints for node01:**
+```bash
+kubectl describe node node01 | grep -i taint
+
+# Output:
+Taints:             dedicated=special-user:NoSchedule
+```
+
+### Create Pod with Toleration
+**Create a basic pod named nginx that uses the image nginx:**
+```bash
+kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml
+```
+
+**View the file and apply the correct toleration to this pod manifest for it to successfully get scheduled to node01.**
+
+**Before Toleration:**
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+```
+
+**After Toleration:**
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  tolerations:
+  - key: "dedicated"
+    value: "special-user"
+    effect: "NoSchedule"
+  containers:
+  - image: nginx
+    name: nginx
+```
+
+**Update and view the pod:**
+```bash
+# Update the pod
+kubectl apply -f pod.yaml
+
+# View the pod running
+kubectl get po -o wide
+```
+
+**What happens if you don't add the toleration?**
+If you try to create a pod on node01 without a toleration, the pod will not be scheduled on that node due to the taint present on the node. The Kubernetes scheduler will prevent the pod from being placed on the node until a matching toleration is added to the pod specification.
+
+### Add Toleration to Pod
+**Create pod with nodeSelector:**
+```bash
+cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  nodeSelector:
+    kubernetes.io/hostname: controlplane
+EOF
+```
+
+**View the pod:**
+```bash
+kubectl get po -o wide
+```
+
+**Add the toleration for the taint that's applied to the controlplane node:**
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  nodeSelector:
+    kubernetes.io/hostname: controlplane
+  tolerations:
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
+```
+
+**Apply and view the pod:**
+```bash
+kubectl apply -f pod.yaml
+
+# View the pod
+kubectl get po -o wide
+```
+
+### Remove Taint from Node
+**If the pod is not running, fix the pod:**
+```bash
+# Describe the pod to see issues
+kubectl describe po nginx
+
+# Describe the controlplane node to view the taint applied
+kubectl describe no controlplane | grep Taint
+
+# Get the pod to run on the control plane by removing the taint
+kubectl taint no controlplane node-role.kubernetes.io/control-plane:NoSchedule-
+
+# Check to see if the pod is now running and scheduled to the control plane node
+kubectl get po -o wide
+```
+
+**Example pod with toleration:**
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  tolerations:
+  - key: "dedicated"
+    value: "special-user"
+    effect: "NoSchedule"
+  containers:
+  - image: nginx
+    name: nginx
+```
+
+# Rollback a Deployment
+
+Create a deployment named “apache” that uses the image httpd
+
+```bash
+k create deploy apache --image httpd
+
+k get deploy,po
+```
+Change the image from httpd to httpd:2.4.54. List the events of the replicasets in the cluster.
+
+```bash
+k set image deploy/apache httpd=httpd httpd=httpd:2.4.54
+
+k describe rs
+```
+Roll back to a previous version of the deployment (the deployment with the image httpd).
+
+```bash
+k rollout history deploy apache
+
+k rollout undo deploy apache
+
+k rollout status deploy apache
+```
+
+# Change rollout strategy
+
+Create a deployment named source-ip-app that uses the image registry.k8s.io/echoserver:1.4 .
+
+```bash
+k create deploy source-ip-app --image registry.k8s.io/echoserver:1.4
+
+k get deploy, pod
+```
+For the deployment named source-ip-app , change the rollout strategy for a deployment to "Recreate".
+
+```bash
+# edit the deployment and change the rollout strategy to recreate
+kubectl edit deploy source-ip-app
+```
+```yaml
+# in the deployment yaml, modify the 'strategy'. save and quit to apply the changes!
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 5
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: source-ip-app
+  strategy:
+    type: Recreate
+```
+```bash
+kubectl get deploy source-ip-app -o yaml | grep strategy -A3
+```
+change the image used in the source-ip-app deployment to registry.k8s.io/echoserver:1.3 .
+
+```bash
+# change the image used for the 'source-ip-app' deployment
+kubectl set image deploy source-ip-app echoserver=registry.k8s.io/echoserver:1.4 echoserver=registry.k8s.io/echoserver:1.3
+
+# quickly check the pod as they recreate. notice how the old version of the pod is deleted immediately, not waiting for the new pods to create.
+kubectl get po
+```
+# Taints and Tolerations
+
+What is Taints and Tolerations?
+Taints and tolerations are mechanisms in Kubernetes that work together to ensure that pods are not scheduled onto inappropriate nodes. Taints are applied to nodes, while tolerations are applied to pods. A node with a taint will repel any pod that does not have a matching toleration.
+
+List the taints for node01
+
+```bash
+kubectl describe node node01 | grep -i taint
+
+# Output:
+Taints:             dedicated=special-user:NoSchedule
+```
+
+```bash
+
+Lets say you have a basic pod named nginx that uses the image nginx. Create this pod in the default namespace.
+
+```bash
+kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml
+```
+
+View the file in your home directory named pod.yaml . Apply the correct toleration to this pod manifest in order for it to successfully get scheduled to node01.
+
+Before Toleration:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+```
+After Toleration:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  tolerations:
+  - key: "dedicated"
+    value: "special-user"
+    effect: "NoSchedule"
+  containers:
+  - image: nginx
+    name: nginx
+```
+
+```bash
+#Update the pod
+k apply -f pod.yaml
+
+#View the pod running
+k get po -o wide
+```
+what happens if you don't add the toleration?
+
+If you try to create a pod on node01 without a toleration, the pod will not be scheduled on that node due to the taint present on the node. The Kubernetes scheduler will prevent the pod from being placed on the node until a matching toleration is added to the pod specification.
+
+## Add a Toleration to Pod
+
+```bash
+cat << EOF k apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  nodeSelector:
+    kubernetes.io/hostname: controlplane
+EOF
+```
+```bash
+#view the pod
+k get po -o wide
+```
+Add the toleration for the taint thats applied to the controlplane node.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  nodeSelector:
+    kubernetes.io/hostname: controlplane
+  tolerations:
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
+```
+```bash
+k apply -f pod.yaml
+
+#view the pod
+k get po -o wide
+```
+
+
+## Remove the taint from Node
+
+```bash
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  tolerations:
+  - key: "dedicated"
+    value: "special-user"
+    effect: "NoSchedule"
+  containers:
+  - image: nginx
+    name: nginx
+
+#view the pod
+k get po -o wide
+```
+#If the pod is not running, fix the pod.
+
+```bash
+k describe po nginx
+
+# describe the controlplane node to view the taint applied
+kubectl describe no controlplane | grep Taint
+
+# get the pod to run on the control plane by removing the taint
+kubectl taint no controlplane node-role.kubernetes.io/control-plane:NoSchedule-
+
+# check to see if the pod is now running and scheduled to the control plane node
+kubectl get po -o wide
+```
+
