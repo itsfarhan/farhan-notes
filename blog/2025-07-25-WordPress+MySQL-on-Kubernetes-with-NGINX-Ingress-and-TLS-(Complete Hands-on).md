@@ -1,11 +1,11 @@
 ---
 slug: wordpress-mysql-kubernetes-nginx-ingress-tls
-title: WordPress + MySQL on Kubernetes with NGINX Ingress and TLS (First Hands-on)
+title: WordPress + MySQL on Kubernetes with NGINX Ingress and TLS (Complete Hands-on)
 authors: [farhan]
 tags: [Kubernetes, cloud]
 ---
 
-# WordPress + MySQL on Kubernetes with NGINX Ingress and TLS (First Hands-on)
+# WordPress + MySQL on Kubernetes with NGINX Ingress and TLS (Complete Hands-on)
 
 In this hands-on tutorial, I'll walk you through deploying a complete WordPress application with MySQL database on Kubernetes, secured with NGINX Ingress and TLS certificates. This is a practical guide that covers everything from storage configuration to SSL/TLS setup using cert-manager.
 
