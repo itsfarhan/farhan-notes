@@ -1,4 +1,4 @@
-# Kubernetes Exercises - Simple Notes
+# Kubernetes Exercises
 
 ## Table of Contents
 - [Basic Commands](#basic-commands)
@@ -12,6 +12,10 @@
 - [Deployment Rollbacks](#deployment-rollbacks)
 - [Rollout Strategies](#rollout-strategies)
 - [Taints and Tolerations](#taints-and-tolerations)
+- [Certificates and Authentication](#certificates-and-authentication)
+- [Kubernetes PKI](#kubernetes-pki)
+- [Cluster Upgrades](#cluster-upgrades)
+- [ETCD Backup and Restore](#etcd-backup-and-restore)
 
 ## Basic Commands
 
@@ -584,7 +588,7 @@ Create a deployment named source-ip-app that uses the image registry.k8s.io/echo
 ```bash
 kubectl create deploy source-ip-app --image registry.k8s.io/echoserver:1.4
 
-kubectl get deploy,po
+kubectl get deploy,pod
 ```
 
 **For the deployment named source-ip-app, change the rollout strategy to "Recreate":**
@@ -756,240 +760,239 @@ kubectl taint no controlplane node-role.kubernetes.io/control-plane:NoSchedule-
 kubectl get po -o wide
 ```
 
-**Example pod with toleration:**
-```yaml
-apiVersion: v1
-kind: Pod
+## Certificates and Authentication
+
+### Create Certificate Signing Request (CSR)
+**Generate a private key and certificate signing request for a user named "carlton":**
+
+```bash
+# Generate private key
+openssl genrsa -out carlton.key 2048
+
+# Generate certificate signing request
+openssl req -new -key carlton.key -out carlton.csr -subj "/CN=carlton"
+```
+
+**Important:** Make sure to include the Common Name (CN) into your CSR, or else the certificate will become invalid.
+
+### Submit CSR to Kubernetes API
+**Store the CSR value in an environment variable:**
+```bash
+export REQUEST=$(cat carlton.csr | base64 -w 0)
+```
+
+**Create and submit the CSR to Kubernetes:**
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
 metadata:
-  labels:
-    run: nginx
-  name: nginx
+  name: carlton
 spec:
-  tolerations:
-  - key: "dedicated"
-    value: "special-user"
-    effect: "NoSchedule"
-  containers:
-  - image: nginx
-    name: nginx
-```
-
-# Rollback a Deployment
-
-Create a deployment named “apache” that uses the image httpd
-
-```bash
-k create deploy apache --image httpd
-
-k get deploy,po
-```
-Change the image from httpd to httpd:2.4.54. List the events of the replicasets in the cluster.
-
-```bash
-k set image deploy/apache httpd=httpd httpd=httpd:2.4.54
-
-k describe rs
-```
-Roll back to a previous version of the deployment (the deployment with the image httpd).
-
-```bash
-k rollout history deploy apache
-
-k rollout undo deploy apache
-
-k rollout status deploy apache
-```
-
-# Change rollout strategy
-
-Create a deployment named source-ip-app that uses the image registry.k8s.io/echoserver:1.4 .
-
-```bash
-k create deploy source-ip-app --image registry.k8s.io/echoserver:1.4
-
-k get deploy, pod
-```
-For the deployment named source-ip-app , change the rollout strategy for a deployment to "Recreate".
-
-```bash
-# edit the deployment and change the rollout strategy to recreate
-kubectl edit deploy source-ip-app
-```
-```yaml
-# in the deployment yaml, modify the 'strategy'. save and quit to apply the changes!
-spec:
-  progressDeadlineSeconds: 600
-  replicas: 5
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      app: source-ip-app
-  strategy:
-    type: Recreate
-```
-```bash
-kubectl get deploy source-ip-app -o yaml | grep strategy -A3
-```
-change the image used in the source-ip-app deployment to registry.k8s.io/echoserver:1.3 .
-
-```bash
-# change the image used for the 'source-ip-app' deployment
-kubectl set image deploy source-ip-app echoserver=registry.k8s.io/echoserver:1.4 echoserver=registry.k8s.io/echoserver:1.3
-
-# quickly check the pod as they recreate. notice how the old version of the pod is deleted immediately, not waiting for the new pods to create.
-kubectl get po
-```
-# Taints and Tolerations
-
-What is Taints and Tolerations?
-Taints and tolerations are mechanisms in Kubernetes that work together to ensure that pods are not scheduled onto inappropriate nodes. Taints are applied to nodes, while tolerations are applied to pods. A node with a taint will repel any pod that does not have a matching toleration.
-
-List the taints for node01
-
-```bash
-kubectl describe node node01 | grep -i taint
-
-# Output:
-Taints:             dedicated=special-user:NoSchedule
-```
-
-```bash
-
-Lets say you have a basic pod named nginx that uses the image nginx. Create this pod in the default namespace.
-
-```bash
-kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml
-```
-
-View the file in your home directory named pod.yaml . Apply the correct toleration to this pod manifest in order for it to successfully get scheduled to node01.
-
-Before Toleration:
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    run: nginx
-  name: nginx
-spec:
-  containers:
-  - image: nginx
-    name: nginx
-```
-After Toleration:
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    run: nginx
-  name: nginx
-spec:
-  tolerations:
-  - key: "dedicated"
-    value: "special-user"
-    effect: "NoSchedule"
-  containers:
-  - image: nginx
-    name: nginx
-```
-
-```bash
-#Update the pod
-k apply -f pod.yaml
-
-#View the pod running
-k get po -o wide
-```
-what happens if you don't add the toleration?
-
-If you try to create a pod on node01 without a toleration, the pod will not be scheduled on that node due to the taint present on the node. The Kubernetes scheduler will prevent the pod from being placed on the node until a matching toleration is added to the pod specification.
-
-## Add a Toleration to Pod
-
-```bash
-cat << EOF k apply -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  creationTimestamp: null
-  labels:
-    run: nginx
-  name: nginx
-spec:
-  containers:
-  - image: nginx
-    name: nginx
-  nodeSelector:
-    kubernetes.io/hostname: controlplane
+  groups:
+  - system:authenticated
+  request: $REQUEST
+  signerName: kubernetes.io/kube-apiserver-client
+  usages:
+  - client auth
 EOF
-```
-```bash
-#view the pod
-k get po -o wide
-```
-Add the toleration for the taint thats applied to the controlplane node.
 
+# Verify the CSR was created
+kubectl get csr
+```
+
+### Approve CSR and Extract Certificate
+**Approve the CSR:**
+```bash
+kubectl certificate approve carlton
+
+# Verify the CSR was approved
+kubectl get csr
+```
+
+**Extract the client certificate:**
+```bash
+kubectl get csr carlton -o jsonpath='{.status.certificate}' | base64 -d > carlton.crt
+```
+
+### Configure kubectl with New User
+**Set credentials in kubeconfig:**
+```bash
+kubectl config set-credentials carlton --client-key=carlton.key --client-certificate=carlton.crt --embed-certs
+```
+
+**💡 TIP:** You can remove the `--embed-certs` flag and they will remain pointers to the key and certificate files.
+
+**Set and use the context:**
+```bash
+kubectl config set-context carlton --user=carlton --cluster=kubernetes
+
+kubectl config use-context carlton
+
+# Test if pods are running in web namespace
+kubectl -n web get pods
+```
+
+### View Kubelet Client Certificate
+**View the client certificate that the kubelet uses to authenticate to the Kubernetes API:**
+
+```bash
+# View the kubelet client certificate and output to a file
+cat /etc/kubernetes/kubelet.conf > kubelet-config.txt
+
+# View the certificate using openssl
+openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout
+```
+
+## Kubernetes PKI
+
+### PKI Essentials
+The Kubernetes PKI is a set of public key infrastructure (PKI) components that secure communication between cluster components:
+
+- **Certificates** - Used to authenticate and encrypt communication between components
+- **Keys** - Used to encrypt and decrypt communication between components
+
+### Explore Certificates
+**Peek inside the certificates:**
+```bash
+# View API server certificate
+sudo openssl x509 -in /etc/kubernetes/pki/apiserver.crt -noout -text | egrep 'Subject:|Issuer:|DNS:|IP Address:'
+
+# View CA certificate
+sudo openssl x509 -in /etc/kubernetes/pki/ca.crt -noout -text | egrep 'Subject:|Issuer:'
+
+# See how kubectl uses them
+sudo egrep -n 'certificate-authority|client-certificate|client-key' /etc/kubernetes/admin.conf
+```
+
+**Observation:** admin.conf references the CA and a client cert/key from /etc/kubernetes/pki. This is how kubectl proves who you are to the API server.
+
+### Test PKI Security
+**Temporarily hide the API server's TLS private key:**
+```bash
+sudo mv /etc/kubernetes/pki/apiserver.key /etc/kubernetes/pki/apiserver.key.bak
+```
+
+**Open another terminal and monitor kubelet logs:**
+```bash
+sudo journalctl -u kubelet -f
+```
+
+**In the first terminal, trigger API server restart:**
+```bash
+# Trigger the kubelet to restart the kube-apiserver static pod
+sudo sed -i '1s/^/# trigger reload\n/' /etc/kubernetes/manifests/kube-apiserver.yaml
+
+# Delete the running apiserver container via crictl
+sudo crictl ps | awk '/kube-apiserver/{print $1}' | xargs -r sudo crictl rm -f
+
+# Restart kubelet
+sudo systemctl restart kubelet
+
+# Test connectivity (should fail)
+kubectl get nodes
+```
+
+**Restore the key:**
+```bash
+sudo mv /etc/kubernetes/pki/apiserver.key.bak /etc/kubernetes/pki/apiserver.key
+
+# Verify recovery (may take a minute or two)
+kubectl get --raw='/readyz?verbose' | head
+kubectl get nodes
+```
+
+**Key Takeaways:**
+- `/etc/kubernetes/pki` contains the crown jewels of a kubeadm control plane's security
+- Certificates and keys allow API server, controller-manager, scheduler, and kubelet to trust each other
+- The API server is a static Pod; kubelet continuously tries to restart it if something goes wrong
+- admin.conf references the CA and client cert/key, letting kubectl authenticate
+
+## Cluster Upgrades
+
+### Kubeadm Installation
+For detailed kubeadm installation instructions, see: [Create basic cluster with Kubeadm on AWS EC2 Instance](/blog/2025-07-05-Create-basic-cluster-with-Kubeadm-on-AWS-EC2-Instance.md)
+
+### Upgrading Kubernetes
+**Check current and target versions:**
+```bash
+# Check the current and target version of control plane components
+kubeadm upgrade plan
+```
+
+**Upgrade kubeadm first:**
+```bash
+# Check current kubeadm version
+kubeadm version -o json | jq
+
+# Upgrade kubeadm
+sudo apt install -y kubeadm=1.30.1-1.1
+```
+
+**Upgrade control plane components:**
+```bash
+# Run upgrade plan again
+kubeadm upgrade plan
+
+# Upgrade components
+kubeadm upgrade apply v1.30.1
+
+# For forced upgrade (if needed)
+kubeadm upgrade apply v1.33.5 --force
+```
+
+**Note:** You may receive this message: "Specified version to upgrade to 'v1.30.1' is higher than the kubeadm version 'v1.30.0'. Upgrade kubeadm first using the tool you used to install kubeadm"
+
+## ETCD Backup and Restore
+
+### Backup ETCD
+**Set up environment for etcdctl:**
+```bash
+export ETCDCTL_API=3
+```
+
+**💡 TIP:** etcd has its own server certificate which requires a valid client certificate and key located in `/etc/kubernetes/pki/etcd`
+
+**Create ETCD snapshot:**
+```bash
+etcdctl snapshot save snapshot --cacert /etc/kubernetes/pki/etcd/ca.crt --cert /etc/kubernetes/pki/etcd/server.crt --key /etc/kubernetes/pki/etcd/server.key
+
+# Check the status of your snapshot
+etcdctl snapshot status snapshot --write-out table
+```
+![alt text](etcd1.png)
+
+### Simulate Disaster
+**Delete kube-proxy daemonset to simulate disaster:**
+```bash
+kubectl delete ds kube-proxy -n kube-system
+
+# Verify that this daemonset no longer exists
+kubectl get ds -A
+```
+
+### Restore from Backup
+**💡 TIP:** The kubelet runs the etcd pod directly (without kube-scheduler) and picks up the manifest in `/etc/kubernetes/manifests/etcd.yaml`
+
+**Restore from snapshot:**
+```bash
+etcdctl snapshot restore snapshot --data-dir /var/lib/etcd-restore
+```
+
+**Update etcd manifest:**
+Edit `/etc/kubernetes/manifests/etcd.yaml` and change line 88:
 ```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  creationTimestamp: null
-  labels:
-    run: nginx
-  name: nginx
-spec:
-  containers:
-  - image: nginx
-    name: nginx
-  nodeSelector:
-    kubernetes.io/hostname: controlplane
-  tolerations:
-  - key: "node-role.kubernetes.io/control-plane"
-    operator: "Exists"
-    effect: "NoSchedule"
+  - hostPath:
+      path: /var/lib/etcd-restore # CHANGE THIS LINE
+      type: DirectoryOrCreate
+    name: etcd-data
 ```
+
+**⛔ STOP:** The Kubernetes API will be unavailable until the etcd pod is restarted. This may take up to 3 minutes.
+
+**Verify restoration:**
 ```bash
-k apply -f pod.yaml
-
-#view the pod
-k get po -o wide
+# Verify kube-proxy daemonset is restored
+kubectl get ds -A
 ```
-
-
-## Remove the taint from Node
-
-```bash
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    run: nginx
-  name: nginx
-spec:
-  tolerations:
-  - key: "dedicated"
-    value: "special-user"
-    effect: "NoSchedule"
-  containers:
-  - image: nginx
-    name: nginx
-
-#view the pod
-k get po -o wide
-```
-#If the pod is not running, fix the pod.
-
-```bash
-k describe po nginx
-
-# describe the controlplane node to view the taint applied
-kubectl describe no controlplane | grep Taint
-
-# get the pod to run on the control plane by removing the taint
-kubectl taint no controlplane node-role.kubernetes.io/control-plane:NoSchedule-
-
-# check to see if the pod is now running and scheduled to the control plane node
-kubectl get po -o wide
-```
-
+![alt text](etcd2.png) 
