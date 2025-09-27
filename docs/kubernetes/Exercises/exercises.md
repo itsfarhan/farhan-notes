@@ -911,7 +911,7 @@ kubectl get nodes
 ## Cluster Upgrades
 
 ### Kubeadm Installation
-For detailed kubeadm installation instructions, see: [Create basic cluster with Kubeadm on AWS EC2 Instance](/blog/2025-07-05-Create-basic-cluster-with-Kubeadm-on-AWS-EC2-Instance.md)
+For detailed kubeadm installation instructions, refer to the official Kubernetes documentation or kubeadm setup guides.
 
 ### Upgrading Kubernetes
 **Check current and target versions:**
