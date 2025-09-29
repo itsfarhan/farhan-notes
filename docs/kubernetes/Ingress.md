@@ -5,6 +5,8 @@
 - Decouples routing rules from applications
 - Centralizes rules management
 
+![Ingress Diagram](static/img/kubernetes/ingress.png)
+
 ## Problem Solved
 - Services have routing rules tied to them
 - Many rules because many Services
