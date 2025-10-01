@@ -1,4 +1,4 @@
-# ConfigMaps and Secrets
+# Kubernetes ConfigMaps and Secrets
 
 ## ConfigMaps
 
