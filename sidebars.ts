@@ -39,6 +39,7 @@ const sidebars: SidebarsConfig = {
         'kubernetes/Daemonsets',
         'kubernetes/Services',
         'kubernetes/Ingress',
+        'kubernetes/Autoscaling',
         'kubernetes/Configmaps-and-Secrets',
         'kubernetes/Volumes',
         'kubernetes/Security',
