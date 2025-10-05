@@ -634,7 +634,7 @@ kubectl get po
 ## Taints and Tolerations
 
 ### What are Taints and Tolerations?
-Taints and tolerations are mechanisms in Kubernetes that work together to ensure that pods are not scheduled onto inappropriate nodes. Taints are applied to nodes, while tolerations are applied to pods. A node with a taint will repel any pod that does not have a matching toleration.
+Taints and tolerations work together to make sure pods don't get scheduled on wrong nodes. Taints are applied to nodes, tolerations are applied to pods. A node with a taint will reject any pod that doesn't have a matching toleration.
 
 ### List Node Taints
 **List the taints for node01:**
@@ -695,7 +695,7 @@ kubectl get po -o wide
 ```
 
 **What happens if you don't add the toleration?**
-If you try to create a pod on node01 without a toleration, the pod will not be scheduled on that node due to the taint present on the node. The Kubernetes scheduler will prevent the pod from being placed on the node until a matching toleration is added to the pod specification.
+If you try to create a pod on node01 without a toleration, the pod will not be scheduled on that node due to the taint. The scheduler will prevent the pod from being placed on the node until a matching toleration is added.
 
 ### Add Toleration to Pod
 **Create pod with nodeSelector:**
@@ -854,7 +854,7 @@ openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout
 ## Kubernetes PKI
 
 ### PKI Essentials
-The Kubernetes PKI is a set of public key infrastructure (PKI) components that secure communication between cluster components:
+The Kubernetes PKI is a set of components that secure communication between cluster components:
 
 - **Certificates** - Used to authenticate and encrypt communication between components
 - **Keys** - Used to encrypt and decrypt communication between components
@@ -910,7 +910,7 @@ kubectl get nodes
 ```
 
 **Key Takeaways:**
-- `/etc/kubernetes/pki` contains the crown jewels of a kubeadm control plane's security
+- `/etc/kubernetes/pki` contains the security files of a kubeadm control plane
 - Certificates and keys allow API server, controller-manager, scheduler, and kubelet to trust each other
 - The API server is a static Pod; kubelet continuously tries to restart it if something goes wrong
 - admin.conf references the CA and client cert/key, letting kubectl authenticate
@@ -1011,29 +1011,31 @@ kubectl get ds -A
 Create a deployment named apache which uses the httpd image.
 
 ```bash
-k create deploy apache --image httpd
+kubectl create deploy apache --image httpd
 ```
 
-Create a service named apache-svc from the apache deployment created in the previous step.
+Create a service named apache-svc from the apache deployment.
 
 ```bash
-# expose te deployment
-k expose deploy apache --name apache-svc --port 80
+# Expose the deployment
+kubectl expose deploy apache --name apache-svc --port 80
 ```
-## Create a pod and use DNS
+
+### Create a Pod and Use DNS
 
 Create a pod named `netshoot` that uses the `nicolaka/netshoot` image.
 
-Exec into the pod and verify that you can reach the service by it's name `apache-svc`
+Exec into the pod and verify that you can reach the service by its name `apache-svc`
 
 ```bash
-k run netshoot --image nicolaka/netshoot --rm -it -- sh
+kubectl run netshoot --image nicolaka/netshoot --rm -it -- sh
 
 wget -O- apache-svc
 ```
-Explain what happened from beginning to end
 
-When you create a deployment named `apache` using the `httpd` image, Kubernetes creates a set of pods that run the Apache HTTP server. This deployment ensures that a specified number of replicas of the Apache server are always running.
+**What happened from beginning to end:**
+
+When you create a deployment named `apache` using the `httpd` image, Kubernetes creates pods that run the Apache HTTP server. This deployment ensures that a specified number of replicas are always running.
 
 Next, you expose the deployment as a service named `apache-svc` on port 80. This service acts as a stable endpoint for accessing the Apache pods, load balancing traffic between them.
 
@@ -1043,12 +1045,10 @@ Finally, you create a pod named `netshoot` using the `nicolaka/netshoot` image. 
 
 ### Create a Persistent Volume
 
-Create a Persistent Volume
-
 Create a Persistent Volume (PV) named pv-volume that has the following specifications:
 
 - a Delete persistentVolumeReclaimPolicy
-- Uses the strageClass named local-path
+- Uses the storageClass named local-path
 - Uses hostPath volume type, at path /mnt/data
 - Has a capacity of 1Gi
 - Access mode is set to ReadWriteOnce
@@ -1056,7 +1056,7 @@ Create a Persistent Volume (PV) named pv-volume that has the following specifica
 Once you've created the PV, list all the persistentvolumes in the cluster.
 
 ```bash
-cat <<EOF | k apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -1073,12 +1073,12 @@ spec:
 EOF
 
 # List the PVs
-k get pv
+kubectl get pv
 ```
 
-## Create Persistent Volume Claim
+### Create Persistent Volume Claim
 
-Create a Persistent Volume Claim (PVC) named pvc-claim that has the following specifications:
+Create a Persistent Volume Claim (PVC) named pv-claim that has the following specifications:
 
 - Uses the storageClass named local-path
 - Access mode set to ReadWriteOnce
@@ -1087,7 +1087,7 @@ Create a Persistent Volume Claim (PVC) named pvc-claim that has the following sp
 Once you've created the PVC, list all the persistentvolumeclaims in the cluster.
 
 ```bash
-cat <<EOF | k apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -1103,19 +1103,19 @@ spec:
 EOF
 
 # List the PVCs
-k get pvc -n default
+kubectl get pvc -n default
 ```
 
-## Create a Pod that uses the PVC
+### Create a Pod that Uses the PVC
 
 Now that we have created the persistentvolume and the persistentvolumeclaim resources in Kubernetes, let's create a pod that can use the volume.
 
-Create a pod named pv-pod that uses the image nginx with a volume named pv-storage . Mount the volume inside the container at /usr/share/nginx/html and specify the pvc by it's name (pv-claim ).
+Create a pod named pv-pod that uses the image nginx with a volume named pv-storage. Mount the volume inside the container at /usr/share/nginx/html and specify the pvc by its name (pv-claim).
 
 After you've created the pod, list all the pods in the default namespace.
 
 ```bash
-cat <<EOF | k apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Pod
 metadata:
@@ -1134,24 +1134,25 @@ spec:
 EOF
 
 # List the pods
-k get po -n default
+kubectl get po -n default
 ```
 
-## Create a second Pod
+### Create a Second Pod
 
 Now that our pod is created, and it's using the volume that we provisioned, let's write some data to the volume and see if the data persists beyond the life of the pod.
 
 We'll start by getting a shell to the container in the pod pv-pod and performing the command:
 
 echo "<h1>This is my website!</h1>" > /usr/share/nginx/html/index.html
+
 Once you've written that index.html file to the volume, go ahead and delete the pod.
 
-Start a new pod with the same specifications, but name it pv-pod2 instead of pv-pod . Get a shell to the nginx container running inside of pv-pod2 and see if the index.html file is still there. If it is, that means that our data persisted beyond the life of a pod.
+Start a new pod with the same specifications, but name it pv-pod2 instead of pv-pod. Get a shell to the nginx container running inside of pv-pod2 and see if the index.html file is still there. If it is, that means that our data persisted beyond the life of a pod.
 
 ```bash
-k delete po pv-pod
+kubectl delete po pv-pod
 
-cat <<EOF | k apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Pod
 metadata:
@@ -1170,8 +1171,7 @@ spec:
 EOF
 
 # Get a shell to the nginx container in pod pv-pod2
-
-k exec -it pv-pod2 -- sh
+kubectl exec -it pv-pod2 -- sh
 
 # List the files in the nginx html directory
 ls /usr/share/nginx/html/
@@ -1181,10 +1181,9 @@ ls /usr/share/nginx/html/
 
 ### Install NFS Server
 
-Install an NFS server on node01
-ssh to the worker node with the command ssh node01 (Worker node name)
+Install an NFS server on node01. SSH to the worker node with the command ssh node01 (Worker node name).
 
-run the script located in the current directory with the command ./nfs-server-install.sh
+Run the script located in the current directory with the command ./nfs-server-install.sh
 
 NOTE: Select the defaults when prompted. This script will take about 3 minutes to complete. You will only be prompted once.
 When the script is finished, exit from the node01 server with the command exit
@@ -1218,7 +1217,7 @@ exportfs -ar
 # sudo mount -t nfs -o nfsvers=3 172.30.2.2:/data /var/data
 ```
 
-## Create a pod that mounts the NFS share
+### Create a Pod that Mounts the NFS Share
 
 ```yaml
 apiVersion: v1
@@ -1242,12 +1241,12 @@ spec:
 ```
 
 ```bash
-k create -f nfs-pod.yaml
+kubectl create -f nfs-pod.yaml
 
-k get po
+kubectl get po
 ```
 
-## View the data on written by the container
+### View the Data Written by the Container
 
 ```bash
 #!/bin/bash
@@ -1258,42 +1257,42 @@ sudo apt update && sudo apt install nfs-common
 
 sudo mkdir /var/data
 ```
-## Run a second container that will share the same NFS volume
+
+### Run a Second Container that Shares the Same NFS Volume
 
 Same pod file as above but change the name of the pod to test2
 
-Run the pod and check if its running.
-
+Run the pod and check if it's running.
 
 ## Priority Classes
 
 ### Understanding Priority Classes
 
 What is priority class?
-Priority class is a Kubernetes feature that allows you to assign different priority levels to pods. This helps the scheduler determine the order in which pods should be scheduled and evicted, especially during cluster resource issues scenarios. Pods with higher priority classes are scheduled before those with lower priority classes, and in cases of resource scarcity, lower-priority pods may be evicted to make room for higher-priority ones.
+Priority class is a Kubernetes feature that allows you to assign different priority levels to pods. This helps the scheduler determine the order in which pods should be scheduled and evicted, especially during cluster resource issues. Pods with higher priority classes are scheduled before those with lower priority classes, and in cases of resource scarcity, lower-priority pods may be evicted to make room for higher-priority ones.
 
-In every Kubernetes cluster, there are two built-in high-priority classes. Use the kubectl command-line to view the default priorityclass .
+In every Kubernetes cluster, there are two built-in high-priority classes. Use the kubectl command-line to view the default priorityclass.
 
 ```bash
-# view the priority classes in a Kubernetes cluster
+# View the priority classes in a Kubernetes cluster
 kubectl get priorityclass
 ```
 
-These are reserved for Kubernetes system components like kube-dns , kube-proxy , etc.
+These are reserved for Kubernetes system components like kube-dns, kube-proxy, etc.
 
-## Create a High Priority Class
+### Create a High Priority Class
 
-You can search relevant kubectl commands and get help using the --help or -h flag. example: `k create priorityclass -h`
+You can search relevant kubectl commands and get help using the --help or -h flag. example: `kubectl create priorityclass -h`
 
 ```bash
-k create priorityclass high-priority --value 1000000 --description high-priority
+kubectl create priorityclass high-priority --value 1000000 --description high-priority
 ```
 
-## Create Low Priority Pods
+### Create Low Priority Pods
 
-If no priority class is set in the pod spec, the pod gets a priority value of 0 by default. This means, it's the first to be eviced if the node is under memory or CPU pressure.
+If no priority class is set in the pod spec, the pod gets a priority value of 0 by default. This means, it's the first to be evicted if the node is under memory or CPU pressure.
 
-Create a deployment named low-prio that has 3 pod replicas. Use the polinux/stress image with the command ["stress] and the argument ["--vm", "1", "--vm-bytes", "400M", "--timeout", "600s"] . The pod should request 500 Mebibytes of memory and 100 millicores of CPU.
+Create a deployment named low-prio that has 3 pod replicas. Use the polinux/stress image with the command ["stress"] and the argument ["--vm", "1", "--vm-bytes", "400M", "--timeout", "600s"]. The pod should request 500 Mebibytes of memory and 100 millicores of CPU.
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -1323,17 +1322,18 @@ spec:
 EOF
 ```
 
-## Create High Priority Pods
+### Create High Priority Pods
 
 You may have apps that must always stay running, such as:
 
-Logging/monitoring agents
-Control-plane components (in self-managed clusters)
-Payment gateways
-Message queues
+- Logging/monitoring agents
+- Control-plane components (in self-managed clusters)
+- Payment gateways
+- Message queues
+
 Assigning them higher priority ensures they get scheduled first, and they don't get evicted before the lower priority pods.
 
-Create a pod that uses the high-priority priority class created in a previous step. Name the pod high-prio and use the polinux/stress image with the command ["--cpu", "1", "--vm", "1", "--vm-bytes", "512M", "--timeout", "300s"] . The pod should request 200 mebibytes of memory and 200 millicores of CPU.
+Create a pod that uses the high-priority priority class created in a previous step. Name the pod high-prio and use the polinux/stress image with the command ["stress"] and args ["--cpu", "1", "--vm", "1", "--vm-bytes", "512M", "--timeout", "300s"]. The pod should request 200 mebibytes of memory and 200 millicores of CPU.
 
 ```bash
 cat <<EOF > high-prio.yaml
@@ -1354,13 +1354,13 @@ spec:
         cpu: "200m"
 EOF
 
-# create the pod
+# Create the pod
 kubectl create -f high-prio.yaml
 ```
 
-## Test Preemption
+### Test Preemption
 
-Preemption is the process of evicting pods with lower priority when the nodes experiences CPU or memory stress.
+Preemption is the process of evicting pods with lower priority when the node experiences CPU or memory stress.
 
 We can test preemption by simulating that stress and witness the lower priority pods get evicted.
 
@@ -1369,13 +1369,13 @@ Change the requests for the high priority pod from 200Mi to 600Mi and restart th
 Watch the low priority pod be evicted, and the high-priority pod get scheduled once again (this may take some time).
 
 ```bash
-# request additional memory
+# Request additional memory
 sed -i 's/200Mi/600Mi/' high-prio.yaml
 
-# restart the pod
+# Restart the pod
 kubectl replace -f high-prio.yaml --force
 
-# watch the low priority pod get evicted while the high priority gets scheduled again
+# Watch the low priority pod get evicted while the high priority gets scheduled again
 kubectl get po -w 
 ```
 
@@ -1386,7 +1386,7 @@ kubectl get po -w
 What is Operator in Kubernetes?
 An Operator is a method of packaging, deploying, and managing a Kubernetes application. It extends the Kubernetes API to create, configure, and manage instances of complex stateful applications on behalf of a Kubernetes user. Operators are built using custom resources and controllers, allowing them to automate tasks such as deployment, scaling, and backup of applications.
 
-## Install the Crunchy PostgreSQL Operator
+### Install the Crunchy PostgreSQL Operator
 
 ```bash
 # Create the namespace
@@ -1395,7 +1395,8 @@ kubectl create namespace pgo
 # Install the operator
 kubectl apply -f https://raw.githubusercontent.com/CrunchyData/postgres-operator/v5.0.3/installers/kubectl/postgres-operator.yml -n pgo
 ```
-## Create a PostgreSQL Cluster
+
+### Create a PostgreSQL Cluster
 
 ```bash
 # Create a PostgreSQL cluster named hippo in the pgo namespace
@@ -1407,7 +1408,8 @@ kubectl get pgcluster -n pgo
 # Verify the pods are running
 kubectl get po -n pgo
 ```
-## Create Database CRD
+
+### Create Database CRD
 
 ```bash
 # Create a PostgreSQL database named mydb in the hippo cluster
@@ -1417,11 +1419,12 @@ kubectl apply -f https://raw.githubusercontent.com/CrunchyData/postgres-operator
 kubectl get pgdatabase -n pgo
 ```
 
-As part of creating a Postgres cluster, the Postgres Operator creates a PostgreSQL user account. The credentials for this account are stored in a Secret that has the name hippo-pguser-rhino .
+As part of creating a Postgres cluster, the Postgres Operator creates a PostgreSQL user account. The credentials for this account are stored in a Secret that has the name hippo-pguser-rhino.
 
-List the secres in the postgres-operator namespace with the following command.
+List the secrets in the postgres-operator namespace with the following command.
+
 ```bash
-k -n postgres-operator get secrets
+kubectl -n postgres-operator get secrets
 
 # Create a port forward. You can run the following commands to create a port forward.
 
@@ -1440,31 +1443,32 @@ export PGPASSWORD=$(kubectl get secrets -n postgres-operator "${PG_CLUSTER_USER_
 export PGUSER=$(kubectl get secrets -n postgres-operator "${PG_CLUSTER_USER_SECRET_NAME}" -o go-template='{{.data.user | base64decode}}')
 
 export PGDATABASE=$(kubectl get secrets -n postgres-operator "${PG_CLUSTER_USER_SECRET_NAME}" -o go-template='{{.data.dbname | base64decode}}')
-
 ```
 
 ```bash
 psql -h localhost
 
-#Create a Schema with the following command.
+# Create a Schema with the following command.
 CREATE SCHEMA rhino AUTHORIZATION rhino;
 ```
+
 In PostgreSQL, creating a schema establishes a namespace within a database that can organize and isolate database objects such as tables, views, indexes, functions, and other entities. It allows for better management of database objects, particularly in environments where multiple users or applications interact with the same database.
 
 Exit out of the postgres cli.
 
-## Scale the Database
+### Scale the Database
 
 Scaling a PostgreSQL cluster managed by the Crunchy Data Postgres Operator involves modifying the PostgresCluster Custom Resource Definition (CRD) to adjust the number of PostgreSQL instances (pods). The operator will handle the scaling process automatically once the changes are applied.
 
 Fetch the current PostgresCluster YAML configuration to understand its structure. Look for the instances section under the spec field.
 
 ```bash
-k -n pgo get postgresclusters hippo -o yaml
+kubectl -n pgo get postgresclusters hippo -o yaml
 
 # Edit the hippo postgres cluster in order to change the replica count.
 kubectl edit postgresclusters hippo -n pgo
 ```
+
 To scale the cluster, increase the number of replicas in the PostgresCluster to 3.
 
 ```yaml
@@ -1476,52 +1480,60 @@ spec:
 
 Once the PostgresCluster resource is updated, the operator will detect the change and manage the scaling process. The operator will create 2 new pods.
 
-`kubectl -n pgo get pods
-`
+```bash
+kubectl -n pgo get pods
+```
+
 You can connect to the PostgreSQL service to verify it is handling requests correctly. The operator manages replicas and ensures the primary and replicas are in sync.
 
 If necessary, check the logs of the operator for scaling-related messages.
 
-`kubectl logs -n pgo -l postgres-operator.crunchydata.com/control-plane=postgres-operator`
+```bash
+kubectl logs -n pgo -l postgres-operator.crunchydata.com/control-plane=postgres-operator
+```
 
-## Simulate a DB Failure
+### Simulate a DB Failure
 
-Simulating a pod failure in a Crunchy Data Postgres Operator-managed PostgreSQL cluster is a straightforward way to test the operator’s recovery mechanisms.
+Simulating a pod failure in a Crunchy Data Postgres Operator-managed PostgreSQL cluster is a straightforward way to test the operator's recovery mechanisms.
 
 ```bash
 # List the pods in your PostgreSQL cluster namespace.
-k -n pgo get pods
+kubectl -n pgo get pods
 
 # You can tell which pod is the leader with the following command.
-k -n pgo get pods --show-labels | grep role
+kubectl -n pgo get pods --show-labels | grep role
 
 # Choose a pod to delete (e.g., hippo-instance1-0 for the primary or a replica)
-k -n pgo delete po hippo-instance1-0
+kubectl -n pgo delete po hippo-instance1-0
 ```
+
 This will simulate a failure by removing the pod.
 
 The Crunchy Postgres Operator will automatically detect the failure and attempt to recover the pod.
 
 ```bash
-k -n pgo get pods  -w
+kubectl -n pgo get pods -w
 
 # Check the PostgresCluster resource for events related to the recovery.
-k -n pgo describe postgresclusters hippo
+kubectl -n pgo describe postgresclusters hippo
 ```
+
 Look for events such as:
 - The operator creating a new pod.
 - Replica promotion (if the primary is deleted).
 - Synchronization completion.
 
 Check the operator logs for detailed information about how it handles the failure.
+
 ```bash
-k -n postgres-operator logs -l postgres-operator.crunchydata.com/control-plane=postgres-operator
+kubectl -n postgres-operator logs -l postgres-operator.crunchydata.com/control-plane=postgres-operator
 ```
+
 Look for messages about:
 - Pod recreation
 - Replica promotion (if necessary)
 - Readiness checks
-  
+
 Connect to the PostgreSQL database and run some basic queries to ensure it is functioning properly.
 
 ```bash
@@ -1529,6 +1541,7 @@ psql -h localhost
 
 SELECT pg_is_in_recovery();
 ```
+
 > t : Indicates the node is a replica.
 > f : Indicates the node is the primary.
 
@@ -1539,19 +1552,19 @@ kubectl exec -it -n pgo <replica-pod-name> -- psql -U postgres -d postgres
 SELECT pg_last_wal_replay_lsn();
 ```
 
-This shows the replication status from the primary’s perspective.
+This shows the replication status from the primary's perspective.
 
 ## Gateway API
 
 ### Understanding Gateway API
 
-## Create a basic gateway
-
 A Gateway in Kubernetes is a networking resource that controls external traffic into a cluster, supporting HTTP, HTTPS, TCP, and UDP protocols. It acts as a central entry point, replacing Ingress, and works with GatewayClasses and Routes (HTTPRoute, TCPRoute, UDPRoute) for flexible traffic management.
 
-A GatewayClass defines the implementation of a Gateway , specifying which controller (e.g., NGINX, Istio, Cilium) will manage it. It acts as a template for Gateways, similar to how storageClass works for PersistentVolumes.
+A GatewayClass defines the implementation of a Gateway, specifying which controller (e.g., NGINX, Istio, Cilium) will manage it. It acts as a template for Gateways, similar to how storageClass works for PersistentVolumes.
 
-Install a basic Gateway resource named my-gateway in the default namespace. The gateway should be based on the gateway class nginx . You can view the gatewayClass with the command kubectl get gatewayclass .
+### Create a Basic Gateway
+
+Install a basic Gateway resource named my-gateway in the default namespace. The gateway should be based on the gateway class nginx. You can view the gatewayClass with the command kubectl get gatewayclass.
 
 The gateway will be listening on port 80.
 
@@ -1574,31 +1587,31 @@ EOF
 kubectl get gateway
 ```
 
-## Create a Deployment and Service
+### Create a Deployment and Service
 
 Deploy a simple web app in Kubernetes and a ClusterIP type service exposing the deployment on port 80 internally.
 
-The name of the web app should be **web** and the image used should be **nginx** . Expose the container on **port 80** .
+The name of the web app should be **web** and the image used should be **nginx**. Expose the container on **port 80**.
 
 The name of the service should also be web, and the service should be exposed on port 80 targeting port 80 in the pod as well.
 
 Use ONLY the kubectl command line arguments to get the web deployment and service up and running.
 
 ```bash
-k create deploy web --image nginx --port 80
-k expose deploy web --port 80 --target-port 80 --name web
+kubectl create deploy web --image nginx --port 80
+kubectl expose deploy web --port 80 --target-port 80 --name web
 
-k get deploy,svc
+kubectl get deploy,svc
 ```
 
-## Create Path-Based HTTPRoute
+### Create Path-Based HTTPRoute
 
 An HTTPRoute in Kubernetes defines routing rules for HTTP traffic, specifying how requests are forwarded from a Gateway to backend services. It supports host-based, path-based, and header-based routing, along with traffic splitting, retries, and filters.
 
 Create a new HTTPRoute named **web-route** that will direct HTTP traffic to the underlying web service created in the previous step. Use path-based routing, and ensure all traffic to the domain handled by my-gateway is routed to the web service (setting the path to the root of the domain).
 
 ```bash
-# create an HTTPRoute named `web-route` <span class='kc-markdown-code-copy'></span> and direct HTTP requests to the service `web` <span class='kc-markdown-code-copy'></span> on port 80
+# Create an HTTPRoute named web-route and direct HTTP requests to the service web on port 80
 cat <<EOF | kubectl apply -f -
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -1618,7 +1631,7 @@ spec:
       port: 80
 EOF
 
-k get httproute
+kubectl get httproute
 ```
 
 ## Application Debugging
