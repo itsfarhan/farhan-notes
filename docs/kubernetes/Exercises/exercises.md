@@ -1420,13 +1420,16 @@ kubectl get pgdatabase -n pgo
 As part of creating a Postgres cluster, the Postgres Operator creates a PostgreSQL user account. The credentials for this account are stored in a Secret that has the name hippo-pguser-rhino .
 
 List the secres in the postgres-operator namespace with the following command.
-
+```bash
 k -n postgres-operator get secrets
-Open a new tab by clicking the plus sign at the top of the window, and create a port forward. You can run the following commands to create a port forward.
+
+# Create a port forward. You can run the following commands to create a port forward.
 
 export PG_CLUSTER_PRIMARY_POD=$(kubectl get pod -n postgres-operator -o name -l postgres-operator.crunchydata.com/cluster=hippo,postgres-operator.crunchydata.com/role=master)
 
 kubectl -n postgres-operator port-forward "${PG_CLUSTER_PRIMARY_POD}" 5432:5432
+```
+
 Establish a connection to the PostgreSQL cluster. You can run the following commands to store the username, password, and database in an environment variable and connect.
 
 ```bash
