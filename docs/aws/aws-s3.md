@@ -15,7 +15,16 @@ import TOCInline from '@theme/TOCInline';
 Amazon S3 is an object storage service offering industry-leading scalability, data availability, security, and performance.
 
 
-*Architecture diagram showing S3 with CloudFront distribution*
+## Problems S3 Solves
+
+- **No capacity planning**: You don't need to estimate storage space requirements. Add as many files as needed - S3 scales automatically
+- **High availability**: Files uploaded to S3 are replicated across multiple availability zones to ensure data availability
+
+## Benefits
+
+- **Complete package**: S3 offers scalability, performance, availability, and durability that you can easily use to build cloud-native apps
+- **Start small, scale big**: Since S3 is serverless, it's highly scalable. Start small and grow as your app needs without compromising performance and reliability
+
 
 ## Key Concepts
 
@@ -150,7 +159,7 @@ aws s3 ls s3://my-bucket-name/
 aws s3 website s3://my-bucket-name/ --index-document index.html --error-document error.html
 ```
 
-## CloudFront Integration
+<!-- ## CloudFront Integration
 
 To integrate S3 with CloudFront for better performance and security:
 
@@ -206,7 +215,7 @@ export class S3WebsiteStack extends Stack {
       ],
     });
   }
-}
+} -->
 
 ## Common Use Cases
 
