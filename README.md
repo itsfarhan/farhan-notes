@@ -1,41 +1,39 @@
-# Website
+# 📚 Farhan's Knowledge Base
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+> Personal technical documentation and learning repository covering software development, cloud computing, and system design.
 
-## Installation
+**Live Site**: [notes.farhanahmed.pro](https://notes.farhanahmed.pro)
 
-```bash
-yarn
-```
+## 🎯 What This Is
 
-## Local Development
+Comprehensive knowledge base built with [Docusaurus](https://docusaurus.io/) documenting:
 
-```bash
-yarn start
-```
+- **Programming** (Java, OOP principles)
+- **Cloud Technologies** (AWS services, architecture)
+- **Kubernetes** (Container orchestration, exercises)
+- **System Design** (Scalable architectures, patterns)
+- **Databases** (SQL, storage concepts)
+- **Hands-on Tutorials** (Real-world implementations)
+- **Blog** (Technical articles, tutorials)
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+## 📖 Content Structure
 
-## Build
+| Section | Topics |
+|---------|--------|
+| **AWS** | S3, EC2, IAM, VPC, Best Practices |
+| **Java** | OOP, Inheritance, Polymorphism |
+| **Kubernetes** | Pods, Services, Deployments, Security |
+| **System Design** | HLD, Microservices, Distributed Systems |
+| **SQL** | Queries, Joins, Optimization |
+| **Blog** | WordPress on K8s, Cluster Setup |
 
-```bash
-yarn build
-```
+## 🔗 Connect
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+- **Portfolio**: [farhanahmed.pro](https://farhanahmed.pro)
+- **GitHub**: [@itsfarhan](https://github.com/itsfarhan)
+- **LinkedIn**: [itsfarhan](https://linkedin.com/in/itsfarhan)
+- **Support**: [Ko-fi](https://ko-fi.com/itsfarhan) and [Sponsor me on Github](https://github.com/itsfarhan)
 
-## Deployment
+---
 
-Using SSH:
-
-```bash
-USE_SSH=true yarn deploy
-```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+**Built with ❤️ by Farhan Ahmed** • Backend Developer & AWS Community Builder
