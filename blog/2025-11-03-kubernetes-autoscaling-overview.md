@@ -154,7 +154,7 @@ My intention with this blog was to give you a brief overview of Kubernetes autos
 
 I have planned a **series of blogs** on Kubernetes autoscaling where I will deep dive into each of these topics. Stay tuned for more updates! Thank you for reading!
 
-> 📚 **For practical implementation**: Check out my detailed notes on Kubernetes autoscaling in my [knowledge base](../docs/kubernetes/Autoscaling.md)
+> 📚 **For practical implementation**: Check out my detailed notes on Kubernetes autoscaling in my [knowledge base](https://notes.farhanahmed.pro)
 
 ---
 

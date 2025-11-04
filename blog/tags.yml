@@ -22,3 +22,33 @@ tools:
   label: Tools
   permalink: /tags/tools
   description: Posts about development tools and utilities
+
+kubernetes:
+  label: Kubernetes
+  permalink: /tags/kubernetes
+  description: Posts about Kubernetes and container orchestration
+
+autoscaling:
+  label: Autoscaling
+  permalink: /tags/autoscaling
+  description: Posts about autoscaling and resource management
+
+hpa:
+  label: HPA
+  permalink: /tags/hpa
+  description: Posts about Horizontal Pod Autoscaler
+
+vpa:
+  label: VPA
+  permalink: /tags/vpa
+  description: Posts about Vertical Pod Autoscaler
+
+keda:
+  label: KEDA
+  permalink: /tags/keda
+  description: Posts about Kubernetes Event-Driven Autoscaling
+
+devops:
+  label: DevOps
+  permalink: /tags/devops
+  description: Posts about DevOps practices and tools
