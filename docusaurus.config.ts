@@ -76,7 +76,7 @@ const config: Config = {
       respectPrefersColorScheme: false,
     },
     // Replace with your project's social card
-    image: "img/social-card.png",
+    image: "img/docusaurus-social-card.jpg",
     navbar: {
       title: "Farhan's Notes",
       logo: {
