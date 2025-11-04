@@ -3,6 +3,7 @@ slug: kubernetes-autoscaling-overview
 title: Kubernetes Autoscaling - A Complete Overview
 authors: [farhan]
 tags: [kubernetes, autoscaling, hpa, vpa, keda, devops]
+image: /img/kubernetes/thumbnail.png
 ---
 
 # Kubernetes Autoscaling - A Complete Overview
