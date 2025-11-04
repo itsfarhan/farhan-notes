@@ -23,6 +23,9 @@ const sidebars: SidebarsConfig = {
       label: 'AWS',
       items: [
         'aws/index',
+        'aws/aws-ec2',
+        'aws/aws-vpc',
+        'aws/aws-iam',
         'aws/aws-s3'
       ],
     },
