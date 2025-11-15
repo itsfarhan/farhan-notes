@@ -76,7 +76,7 @@ const config: Config = {
       respectPrefersColorScheme: false,
     },
     // Replace with your project's social card
-    image: "img/docusaurus-social-card.jpg",
+    image: "img/social_card_v2.jpg",
     navbar: {
       title: "Farhan's Notes",
       logo: {
@@ -111,7 +111,7 @@ const config: Config = {
     footer: {
       style: "dark",
       links: [],
-      copyright: `Built with ❤️ by Farhan Ahmed • Backend Dev & AWS Community Builder • <a href="https://github.com/itsfarhan" target="_blank">GitHub</a> • <a href="https://linkedin.com/in/itsfarhan" target="_blank">LinkedIn</a> • <a href="https://ko-fi.com/itsfarhan" target="_blank">Support</a>`,
+      copyright: `Built with ❤️ by Farhan Ahmed <a href="https://github.com/itsfarhan" target="_blank">GitHub</a> • <a href="https://linkedin.com/in/itsfarhan" target="_blank">LinkedIn</a> • <a href="https://ko-fi.com/itsfarhan" target="_blank">Support</a>`,
     },
     prism: {
       theme: prismThemes.github,
