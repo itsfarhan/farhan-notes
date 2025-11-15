@@ -80,13 +80,14 @@ const sidebars: SidebarsConfig = {
         'systemdesign/Design Patterns',
         ],
     },
-    // {
-    //   type: 'category',
-    //   label: 'Tools',
-    //   items: [
-    //     'tools/index',
-    //   ],
-    // },
+    {
+      type: 'category',
+      label: 'Cloud Native Tools',
+      items: [
+        'cloudnative/index',
+        'cloudnative/istio',
+      ],
+    },
   ],
 };
 
