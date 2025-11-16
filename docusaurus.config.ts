@@ -76,7 +76,7 @@ const config: Config = {
       respectPrefersColorScheme: false,
     },
     // Replace with your project's social card
-    image: "img/social_card_v2.jpg",
+    image: "img/social-card.png",
     navbar: {
       title: "Farhan's Notes",
       logo: {
