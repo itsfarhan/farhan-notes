@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: "Istio Service Mesh"
-description: "Complete guide to Istio service mesh - architecture, installation, observability, and hands-on labs"
+description: "Complete guide to Istio service mesh - architecture, installation, traffic management, observability, security, and hands-on labs"
 toc_min_heading_level: 2
 toc_max_heading_level: 4
 ---
@@ -435,7 +435,6 @@ helm uninstall istiod -n istio-system
 helm uninstall istio-base -n istio-system
 kubectl delete namespace istio-system
 ```
----
 
 ## Installing Istio with istioctl
 
@@ -520,8 +519,6 @@ kubectl get pods -n istio-system
 
 You should see `istiod` and `ztunnel` Running.
 
----
-
 ### Canary Upgrades (Production)
 
 #### What is Canary Upgrade?
@@ -564,8 +561,6 @@ kubectl label namespace default istio.io/rev=prod-stable --overwrite
 istioctl uninstall --revision=<old-revision>
 ```
 
----
-
 ### Sidecar vs Ambient Mode Comparison
 
 | Feature | Sidecar Mode | Ambient Mode |
@@ -583,8 +578,6 @@ istioctl uninstall --revision=<old-revision>
 - **Ambient** = Modern approach (shared proxies, lower overhead)
 - **Revisions** = Safe way to upgrade in production
 :::
-
----
 
 ## Lab 1: Installing Istio Sidecar Mode
 
@@ -612,6 +605,7 @@ istioctl uninstall --revision=<old-revision>
 - `istioctl` (Istio CLI)
 
 ### Minikube Setup
+
 ```bash
 minikube start --driver=docker --cpus=4 --memory=8192 --disk-size=40g
 
@@ -733,13 +727,11 @@ kubectl delete namespace istio-system
 **Sidecar mode** = Each pod gets 2 containers (app + Envoy proxy). The `2/2` READY count proves sidecar is injected.
 :::
 
----
-
 ## Lab 2: Installing Istio Ambient Mode
 
 ### What is Ambient Mode?
 
-**Ambient mode** is a lightweight service mesh **WITHOUT sidecar proxies**, resulting in lower resource usage.
+**Ambient mode** is a lightweight service mesh **without sidecar proxies**, resulting in lower resource usage.
 
 ### Prerequisites
 
@@ -768,7 +760,7 @@ You should see:
 - `ztunnel-xxx` - Running (one per node)
 
 :::tip Note
-**NO** ingress/egress gateway in ambient profile by default.
+**No** ingress/egress gateway in ambient profile by default.
 :::
 
 #### 3. Enable Ambient Mode for Namespace
@@ -797,7 +789,7 @@ kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samp
 kubectl get pods
 ```
 
-Each pod should show `1/1` READY (just app, **NO sidecar**!)
+Each pod should show `1/1` READY (just app, **no sidecar**!)
 
 **Example Output**:
 ```
@@ -856,7 +848,7 @@ Then open browser: `http://localhost/productpage`
 - Bookinfo application page
 - Refresh multiple times
 - Reviews section changes (different versions)
-- Traffic routing works **WITHOUT sidecars**!
+- Traffic routing works **without sidecars**!
 
 ### Uninstall
 
@@ -878,10 +870,8 @@ kubectl delete namespace istio-system
 | **Profile** | `demo` | `ambient` |
 
 :::tip Key Takeaway
-**Ambient mode** = NO sidecars. Pods show `1/1` READY. Uses ztunnel (L4) + optional waypoint (L7). Less overhead, same features.
+**Ambient mode** = No sidecars. Pods show `1/1` READY. Uses ztunnel (L4) + optional waypoint (L7). Less overhead, same features.
 :::
-
----
 
 ## Observability and Prometheus
 
@@ -903,8 +893,6 @@ kubectl delete namespace istio-system
 | **Metrics** | Numbers and statistics | Requests, errors, latency |
 | **Distributed Traces** | Request path across services | Full journey tracking |
 | **Access Logs** | Access records | Who accessed what and when |
-
----
 
 ### Metrics: The Four Golden Signals
 
@@ -943,8 +931,6 @@ kubectl delete namespace istio-system
 | **Traffic** | Request volume | RPS, concurrent users |
 | **Errors** | Failure rate | 4xx, 5xx counts |
 | **Saturation** | Resource usage | CPU%, Memory% |
-
----
 
 ### Three Levels of Metrics
 
@@ -996,8 +982,6 @@ Monitors Istio itself (not your applications).
 | **Proxy** | Individual proxy | Highest | Deep debugging |
 | **Service** | Service-to-service | Medium | Daily monitoring |
 | **Control Plane** | Istio components | Low | Istio health |
-
----
 
 ### Prometheus
 
@@ -1082,8 +1066,6 @@ You'll see all requests from `sleep` to `httpbin` with details:
 
 **Works in both modes**: Sidecar (via Envoy) and Ambient (via ztunnel/waypoint)
 :::
-
----
 
 ## Grafana
 
@@ -1240,8 +1222,6 @@ Navigate to **istio** folder to see all dashboards.
 - **Ztunnel** = Monitor ambient mode
 :::
 
----
-
 ## Zipkin - Distributed Tracing
 
 ### What is Distributed Tracing?
@@ -1249,8 +1229,6 @@ Navigate to **istio** folder to see all dashboards.
 **Distributed tracing** tracks a single request as it travels through multiple services - like following a package through different delivery stations.
 
 **Why needed**: In microservices, one user request touches many services. Tracing shows the full journey.
-
----
 
 ### How Tracing Works
 
@@ -1274,8 +1252,6 @@ Navigate to **istio** folder to see all dashboards.
 |------|------------------|-------|
 | **Sidecar** | Envoy proxies collect spans automatically | L4 + L7 |
 | **Ambient** | ztunnel (L4) + waypoint proxies (L7) | L4 and L7 |
-
----
 
 ### Key Concepts
 
@@ -1304,8 +1280,6 @@ One piece of the trace representing work done by one service.
 
 Collection of all spans for one request showing the full journey.
 
----
-
 ### Headers to Propagate
 
 :::warning Critical Requirement
@@ -1326,8 +1300,6 @@ b3
 
 **How**: Copy headers from incoming request → Add to outgoing request
 
----
-
 ### Zipkin
 
 #### What is Zipkin?
@@ -1339,8 +1311,6 @@ b3
 - Find slow services
 - Debug issues
 - Identify bottlenecks
-
----
 
 ### Install Zipkin
 
@@ -1391,8 +1361,6 @@ EOF
 `100.0` = Trace every request (for learning). In production, use lower % (like 1-10%).
 :::
 
----
-
 ### Testing with Bookinfo
 
 #### 1. Enable Sidecar Injection
@@ -1424,8 +1392,6 @@ for i in {1..50}; do
   curl -s http://10.96.209.233/productpage > /dev/null
 done
 ```
-
----
 
 ### View Traces in Zipkin
 
@@ -1496,8 +1462,6 @@ A graph showing which services communicate with which services.
 **Use for**: Finding slow services, debugging errors, understanding request flow
 :::
 
----
-
 ## Kiali
 
 ### What is Kiali?
@@ -1505,8 +1469,6 @@ A graph showing which services communicate with which services.
 **Kiali** is an observability and management console for Istio - like a control center with visual graphs showing your entire service mesh.
 
 **Purpose**: See, manage, and troubleshoot your service mesh in one place.
-
----
 
 ### Main Features
 
@@ -1550,8 +1512,6 @@ A graph showing which services communicate with which services.
 - **Jaeger**: Click to see distributed traces
 - **Grafana**: Click to see detailed metrics dashboards
 
----
-
 ### Install Kiali
 
 ```bash
@@ -1562,8 +1522,6 @@ kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samp
 Install Prometheus, Grafana, and Jaeger first for full features.
 :::
 
----
-
 ### Open Kiali Dashboard
 
 ```bash
@@ -1571,8 +1529,6 @@ istioctl dashboard kiali
 ```
 
 Then open browser: `http://localhost:20001`
-
----
 
 ### Understanding the Service Graph
 
@@ -1647,8 +1603,6 @@ Apply mutual TLS (encrypt traffic between services)
 
 Checks your Istio configs for mistakes before applying
 
----
-
 ### Observability Tools Comparison
 
 | Tool | What It Shows | Best For |
@@ -1673,3 +1627,2587 @@ Checks your Istio configs for mistakes before applying
 
 **Use for**: Understanding mesh topology, finding problems, managing traffic routing
 :::
+
+---
+
+## Traffic Management
+
+### Gateways
+
+### What are Gateways?
+
+**Gateways** are entry and exit points for traffic in your service mesh. They run Envoy proxy and act as load balancers at the edge.
+
+**Two types**:
+- **Ingress Gateway**: Receives traffic coming INTO the cluster
+- **Egress Gateway**: Handles traffic going OUT of the cluster
+
+**Like**: Airport gates - one for arrivals (ingress), one for departures (egress)
+
+### Deploying Gateways
+
+#### Using istioctl Profiles
+
+```bash
+# Default profile (ingress gateway only)
+istioctl install --set profile=default
+
+# Demo profile (both ingress + egress gateways)
+istioctl install --set profile=demo
+```
+
+#### Using Helm
+
+```bash
+# Install base
+helm install istio-base istio/base -n istio-system
+
+# Install istiod
+helm install istiod istio/istiod -n istio-system --wait
+
+# Install ingress gateway
+helm install istio-ingress istio/gateway -n istio-system
+
+# Install egress gateway
+helm install istio-egress istio/gateway \
+  -n istio-system \
+  --set service.type=ClusterIP \
+  --set labels.app=istio-egress \
+  --set labels.istio=egressgateway
+```
+
+### How Ingress Gateway Works
+
+**Purpose**: Single external IP that routes traffic to different services based on hostname
+
+**Example**:
+- `dev.example.com` → Service A
+- `test.example.com` → Service B
+
+All through ONE external IP!
+
+![Ingress Gateway Flow](/img/istio/istio-gateway.png)
+
+### Two Ways to Configure Gateways
+
+#### 1. Istio Gateway Resource (Traditional)
+
+**What it does**: Configures ports, protocols, and which hostnames to accept
+
+**Example**:
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: default
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - dev.example.com
+    - test.example.com
+```
+
+**What this does**:
+- Opens port 80
+- Accepts traffic for `dev.example.com` and `test.example.com`
+- Uses ingress gateway pod
+
+**Need VirtualService**: Gateway alone doesn't route traffic. Need VirtualService to say WHERE to send it.
+
+![Gateway + VirtualService](/img/istio/istio-gateway-1.png)
+
+#### 2. Kubernetes Gateway API (New Way)
+
+**What it is**: Modern, flexible way to configure gateways. Better than old Ingress resource.
+
+**Why better**:
+- Role-based (different teams can manage different parts)
+- More extensible
+- Better support for advanced routing
+
+##### Install Gateway API CRDs
+
+```bash
+kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
+  { kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.2.1" | kubectl apply -f -; }
+```
+
+##### Create Gateway
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: my-k8s-gateway
+  namespace: default
+spec:
+  gatewayClassName: istio
+  listeners:
+  - protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same
+```
+
+**What this does**:
+- Listens on port 80
+- Allows routes only from same namespace
+- Uses Istio as gateway implementation
+
+##### Attach Routes with HTTPRoute
+
+Instead of VirtualService, use HTTPRoute:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: my-route
+  namespace: default
+spec:
+  parentRefs:
+  - name: my-k8s-gateway
+  rules:
+  - matches:
+    - path:
+        type: Prefix
+        value: /hello
+    backendRefs:
+    - name: hello-service
+      port: 8080
+```
+
+**What this does**:
+- Attaches to `my-k8s-gateway`
+- Routes `/hello` requests to `hello-service` on port 8080
+
+### Check Gateway Service
+
+```bash
+kubectl get svc -n istio-system
+```
+
+**You'll see**:
+```
+NAME                   TYPE           EXTERNAL-IP
+istio-ingressgateway   LoadBalancer   XX.XXX.XXX.XXX
+istio-egressgateway    ClusterIP      <none>
+istiod                 ClusterIP      <none>
+```
+
+**Ingress Gateway**: Gets external IP (LoadBalancer type)
+**Egress Gateway**: Internal only (ClusterIP type)
+
+**Note**: 
+- Cloud (AWS, GCP, Azure): External IP assigned automatically
+- Minikube: Need `minikube tunnel` to get external IP
+
+### Egress Gateway
+
+**What it does**: Controls traffic LEAVING the mesh
+
+**Why use it**:
+- Centralize outbound traffic
+- Apply security policies
+- Log all external calls
+- Control which external services can be accessed
+
+**Example**:
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: egress-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: egressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - external-service.com
+```
+
+**What this does**: Only allows outbound HTTPS traffic to `external-service.com`
+
+### Gateway Configuration Comparison
+
+| Feature | Istio Gateway | Kubernetes Gateway API |
+|---------|---------------|------------------------|
+| **Standard** | Istio-specific | Kubernetes standard |
+| **Routing** | VirtualService | HTTPRoute |
+| **Flexibility** | Good | Better |
+| **Role-based** | No | Yes |
+| **Future** | Maintained | Recommended |
+| **Learning curve** | Moderate | Easier |
+| **Maturity** | Stable | Growing |
+
+:::tip Gateway Selection Guide
+- **New projects**: Use Kubernetes Gateway API (modern standard)
+- **Existing Istio setups**: Continue with Istio Gateway (fully supported)
+- **Complex routing**: Both support advanced features
+- **Team collaboration**: Gateway API offers better role separation
+::: Better |
+| Role-based | No | Yes |
+| Future | Maintained | Recommended |
+
+### Best Practices
+
+**Gateway Selection**:
+- Use `default` profile for production (ingress only)
+- Use `demo` profile for learning (ingress + egress)
+- Consider resource requirements for your environment
+
+**Security**:
+- Always use HTTPS in production
+- Configure proper TLS certificates
+- Limit egress traffic to required external services only
+
+**Monitoring**:
+- Monitor gateway resource usage
+- Set up alerts for gateway health
+- Track ingress/egress traffic patterns
+
+:::tip Key Takeaway
+**Gateway** = Entry/exit point for mesh traffic
+
+**Ingress** = Traffic coming IN (gets external IP)
+
+**Egress** = Traffic going OUT (internal only)
+
+**Two approaches**: Istio Gateway (traditional) or Kubernetes Gateway API (modern)
+
+**Gateway alone** = Opens the door, needs routing rules
+
+**VirtualService/HTTPRoute** = Defines where to send traffic
+
+**Use for**: Exposing services to internet, controlling external calls, centralizing traffic management
+:::
+
+### Simple Routing
+
+#### What is Traffic Routing?
+
+**Traffic routing** = Controlling where requests go. Like a traffic cop directing cars to different roads.
+
+**Use case**: You have 2 versions of an app (v1 and v2). Want to send some traffic to each.
+
+**Example scenario**:
+- `customers-v1` deployment (old version)
+- `customers-v2` deployment (new version)
+- Want: 70% traffic to v1, 30% to v2
+
+![Traffic Routing](/img/istio/istio-routing.png)
+
+#### Two Ways to Route Traffic
+
+##### 1. Using Kubernetes Gateway API (Modern)
+
+Uses **HTTPRoute** resource with weights.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: customers-route
+spec:
+  parentRefs:
+  - name: example-gateway
+    namespace: default
+  hostnames:
+  - "customers.default.svc.cluster.local"
+  rules:
+  - backendRefs:
+    - name: customers-v1
+      port: 80
+      weight: 70
+    - name: customers-v2
+      port: 80
+      weight: 30
+```
+
+**What this does**:
+- Attaches to `example-gateway`
+- Routes to `customers.default.svc.cluster.local`
+- 70% traffic → `customers-v1`
+- 30% traffic → `customers-v2`
+
+**Weights**: Must add up to 100
+
+##### 2. Using VirtualService (Istio Traditional)
+
+Uses **VirtualService** resource with subsets.
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: customers-route
+spec:
+  hosts:
+  - customers.default.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: customers.default.svc.cluster.local
+        subset: v1
+      weight: 70
+    - destination:
+        host: customers.default.svc.cluster.local
+        subset: v2
+      weight: 30
+```
+
+**What this does**:
+- Routes traffic for `customers.default.svc.cluster.local`
+- 70% → subset v1
+- 30% → subset v2
+
+---
+
+#### VirtualService Key Fields
+
+##### 1.*hosts*
+**What it is**: Which service this VirtualService applies to
+
+**Examples**:
+- `customers.default.svc.cluster.local` (full name)
+- `customers` (short name)
+- `*.example.com` (wildcard)
+
+##### 2.*http*
+**What it is**: List of routing rules for HTTP traffic
+
+**Contains**: Routes with destinations and weights
+
+##### 3.destination
+**What it is**: Where to send the traffic
+
+**Parts**:
+- `host`: Service name
+- `subset`: Version (v1, v2, etc.)
+
+#### 4.*weight*
+**What it is**: Percentage of traffic to send
+
+**Rules**:
+- Must add up to 100
+- If only one destination, weight = 100 (automatic)
+
+---
+
+#### Binding VirtualService to Gateway
+
+**Why**: To expose service through gateway (make it accessible from outside)
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: customers-route
+spec:
+  hosts:
+  - customers.default.svc.cluster.local
+  gateways:
+  - my-gateway
+  http:
+  - route:
+    - destination:
+        host: customers.default.svc.cluster.local
+        subset: v1
+      weight: 70
+```
+
+**What `gateways` field does**: Binds VirtualService to gateway named `my-gateway`
+
+#### Host Matching Rules (Gateway + VirtualService)
+
+When VirtualService is attached to Gateway, hosts must match!
+
+| Gateway Hosts | VirtualService Hosts | Result |
+|---------------|---------------------|---------|
+| `*` | `customers.default.svc.cluster.local` | ✅ Works (`*` allows all) |
+| `customers.default.svc.cluster.local` | `customers.default.svc.cluster.local` | ✅ Works (exact match) |
+| `hello.default.svc.cluster.local` | `customers.default.svc.cluster.local` | ❌ Doesn't work (no match) |
+
+**Rule**: Gateway hosts act as FILTER. VirtualService hosts must pass through that filter.
+
+#### Routing Methods Comparison
+
+| Feature | HTTPRoute (Gateway API) | VirtualService (Istio) |
+|---------|------------------------|------------------------|
+| **Standard** | Kubernetes | Istio-specific |
+| **Weights** | `weight` in backendRefs | `weight` in destination |
+| **Versions** | Different services | Subsets |
+| **Gateway binding** | `parentRefs` | `gateways` field |
+| **Future** | Recommended | Still supported |
+| **Complexity** | Simpler | More features |
+| **Learning curve** | Easier | Steeper |
+
+#### Common Use Cases
+
+| Scenario | Weight Distribution | Description |
+|----------|-------------------|-------------|
+| **Canary Deployment** | 90% v1, 10% v2 | Test new version with small traffic |
+| **Blue-Green** | 100% v1 → 100% v2 | Complete switch between versions |
+| **A/B Testing** | 50% v1, 50% v2 | Compare two versions equally |
+| **Gradual Rollout** | 70% v1, 30% v2 | Slowly increase new version traffic |
+
+:::tip Key Takeaway
+**Traffic routing** = Control where requests go based on percentages
+
+**Two approaches**: HTTPRoute (modern) or VirtualService (traditional)
+
+**Weights** = Percentage split (must add up to 100)
+
+**Canary pattern** = 90% stable, 10% new (safe testing)
+
+**Gateway binding** = Makes service accessible from outside cluster
+
+**Host matching** = Gateway hosts act as filter for VirtualService hosts
+
+**Use for**: Canary deployments, A/B testing, gradual rollouts, traffic splitting
+:::
+
+### Subsets and DestinationRule
+
+#### What are Subsets?
+
+**Subsets** = Different versions of the same service. Like v1, v2, v3.
+
+**How it works**: Uses labels to identify which pods belong to which version.
+
+**Example**:
+- Pods with label `version: v1` = subset v1
+- Pods with label `version: v2` = subset v2
+
+#### What is DestinationRule?
+
+**DestinationRule** = Defines subsets and traffic policies for a service.
+
+**Two main things**:
+1. **Subsets**: Define versions (v1, v2)
+2. **Traffic Policies**: How to handle traffic (load balancing, timeouts, etc.)
+
+---
+
+#### Basic DestinationRule Example
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: customers-destination
+spec:
+  host: customers.default.svc.cluster.local
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+```
+
+**What this does**:
+- Defines 2 subsets for `customers` service
+- Subset v1 = pods with label `version: v1`
+- Subset v2 = pods with label `version: v2`
+
+#### Traffic Policies
+
+**Traffic policies** = Rules applied AFTER routing happens. Controls HOW traffic is handled.
+
+**5 types of policies**:
+1. Load balancer settings
+2. Connection pool settings
+3. Outlier detection (circuit breaker)
+4. Client TLS settings
+5. Port traffic policy
+
+#### 1. Load Balancer Settings
+
+**What it does**: Choose algorithm for distributing traffic
+
+##### Simple Load Balancing
+
+```yaml
+spec:
+  host: customers.default.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+```
+
+**Options**:
+- `ROUND_ROBIN`: Each pod gets request in turn (1, 2, 3, 1, 2, 3...)
+- `LEAST_CONN`: Send to pod with fewest connections
+- `RANDOM`: Random pod selection
+
+##### Hash-Based Load Balancing (Session Affinity)
+
+```yaml
+trafficPolicy:
+  loadBalancer:
+    consistentHash:
+      httpCookie:
+        name: location
+        ttl: 4s
+```
+
+**What this does**: Same user always goes to same pod (based on cookie)
+
+**Use for**: Shopping carts, user sessions
+
+#### 2. Connection Pool Settings
+
+**What it does**: Limits number of connections to prevent overload
+
+```yaml
+trafficPolicy:
+  connectionPool:
+    http:
+      http2MaxRequests: 50
+```
+
+**What this does**: Max 50 concurrent requests allowed
+
+**Use for**: Protecting service from too many requests
+
+#### 3. Outlier Detection (Circuit Breaker)
+
+**What it does**: Removes unhealthy pods from load balancing pool automatically
+
+```yaml
+trafficPolicy:
+  connectionPool:
+    http:
+      http2MaxRequests: 500
+      maxRequestsPerConnection: 10
+  outlierDetection:
+    consecutiveErrors: 10
+    interval: 5m
+    baseEjectionTime: 10m
+```
+
+**What this does**:
+- Max 500 concurrent requests
+- Max 10 requests per connection
+- Check pods every 5 minutes
+- If pod fails 10 times in a row → Remove for 10 minutes
+
+**Like**: Taking sick player out of game, let them recover
+
+**Use for**: Automatic failure handling
+
+#### 4. Client TLS Settings
+
+**What it does**: Configure TLS/SSL for connections to service
+
+```yaml
+trafficPolicy:
+  tls:
+    mode: MUTUAL
+    clientCertificate: /etc/certs/cert.pem
+    privateKey: /etc/certs/key.pem
+    caCertificates: /etc/certs/ca.pem
+```
+
+**TLS Modes**:
+- `DISABLE`: No encryption
+- `SIMPLE`: One-way TLS (client verifies server)
+- `MUTUAL`: Two-way TLS (both verify each other)
+- `ISTIO_MUTUAL`: Use Istio's built-in certificates
+
+**Use for**: Secure communication between services
+
+#### 5. Port Traffic Policy
+
+**What it does**: Different policies for different ports
+
+```yaml
+trafficPolicy:
+  portLevelSettings:
+  - port:
+      number: 80
+    loadBalancer:
+      simple: LEAST_CONN
+  - port:
+      number: 8000
+    loadBalancer:
+      simple: ROUND_ROBIN
+```
+
+**What this does**:
+- Port 80 uses LEAST_CONN
+- Port 8000 uses ROUND_ROBIN
+
+**Use for**: Different behavior for different ports
+
+#### How It All Works Together
+
+**Step 1**: VirtualService routes traffic (WHERE to send)
+**Step 2**: DestinationRule defines subsets and policies (HOW to send)
+
+**Example flow**:
+1. Request comes in
+2. VirtualService says: "Send 70% to v1, 30% to v2"
+3. DestinationRule says: "v1 = pods with label version:v1, use ROUND_ROBIN"
+4. Traffic goes to correct pods with correct load balancing
+
+### Quick Reference
+
+| Policy | What It Does | Example Use | Configuration |
+|--------|--------------|-------------|---------------|
+| **Load Balancer** | How to distribute traffic | Round robin, least connections | `simple: ROUND_ROBIN` |
+| **Connection Pool** | Limit connections | Prevent overload | `http2MaxRequests: 50` |
+| **Outlier Detection** | Remove unhealthy pods | Circuit breaker | `consecutiveErrors: 10` |
+| **TLS Settings** | Encryption config | Secure communication | `mode: MUTUAL` |
+| **Port Policy** | Different rules per port | HTTP vs HTTPS | `portLevelSettings` |
+
+---
+
+#### Best Practices
+
+**Subset Management**:
+- Use consistent labeling strategy (`version: v1`, `version: v2`)
+- Keep subset names simple and descriptive
+- Document subset purposes and differences
+
+**Load Balancing**:
+- Use `ROUND_ROBIN` for even distribution
+- Use `LEAST_CONN` for varying request processing times
+- Use `consistentHash` for session affinity requirements
+
+**Circuit Breaking**:
+- Set conservative limits initially
+- Monitor ejection rates and adjust thresholds
+- Consider downstream service capacity
+
+:::tip Key Takeaway
+**Subset** = Version of service (v1, v2) identified by pod labels
+
+**DestinationRule** = Defines subsets + traffic policies (HOW to handle traffic)
+
+**VirtualService** = Defines routing rules (WHERE to send traffic)
+
+**Load balancing** = Algorithm for selecting pods (round robin, least connections)
+
+**Circuit breaker** = Automatically remove failing pods from rotation
+
+**Connection pool** = Limit concurrent requests to prevent overload
+
+**Use for**: Version management, load balancing, resilience, security policies
+:::
+
+---
+
+
+### Resiliency
+
+#### What is Resiliency?
+
+**Resiliency** = Ability to keep service running even when things fail. Not about avoiding failures, but handling them gracefully.
+
+**Goal**: Minimize downtime and data loss when failures happen.
+
+**Like**: Having a backup plan when things go wrong.
+
+---
+
+#### Istio Resiliency Features
+
+**4 main mechanisms**:
+1. **Timeouts** - Stop waiting after X seconds
+2. **Retries** - Try again if request fails
+3. **Circuit Breaking** - Stop calling broken service
+4. **Outlier Detection** - Remove unhealthy pods automatically
+
+---
+
+#### 1. Timeouts
+
+**What it does**: Stop waiting for response after specified time
+
+**Why needed**: Don't wait forever for slow/broken service
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: customers-service
+  namespace: default
+spec:
+  hosts:
+  - customers.default.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: customers.default.svc.cluster.local
+        subset: v1
+    timeout: 10s
+```
+
+**What this does**:
+- Wait max 10 seconds for response
+- If no response → Return HTTP 408 (Request Timeout)
+- Connection stays open (unless circuit breaker triggers)
+
+**Use for**: Preventing slow services from blocking everything
+
+---
+
+#### 2. Retries
+
+**What it does**: Automatically retry failed requests
+
+**Important**: Only for idempotent requests (safe to repeat, like GET)
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: customers-service
+  namespace: default
+spec:
+  hosts:
+  - customers.default.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: customers.default.svc.cluster.local
+        subset: v1
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,connect-failure,reset
+```
+
+**What this does**:
+- Try up to 3 times
+- Each try waits max 2 seconds
+- Retry on: 5xx errors, connection failures, resets
+
+**Retry conditions**:
+- `5xx` - Server errors (500, 503, etc.)
+- `connect-failure` - Can't connect to service
+- `reset` - Connection reset
+
+**Important rule**: Total time never exceeds timeout (if both configured)
+
+**Use for**: Handling temporary failures
+
+---
+
+#### 3. Circuit Breaking
+
+**What it does**: Limit connections to prevent overload
+
+**Like**: Electrical circuit breaker - stops flow when overloaded
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: customers-destination
+spec:
+  host: customers.default.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      http:
+        maxRequestsPerConnection: 1
+        maxRetries: 3
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+```
+
+**What this does**:
+- Max 1 request per connection
+- Max 3 retries per request
+- If 5 errors in a row → Remove pod for 30 seconds
+- Check every 10 seconds
+
+**Use for**: Protecting services from overload
+
+---
+
+#### 4. Outlier Detection
+
+**What it does**: Automatically remove unhealthy pods from load balancing
+
+**How it works**:
+1. Monitor pod health
+2. If pod fails X times → Remove from pool
+3. Wait Y seconds
+4. Add pod back to pool
+5. Repeat
+
+**Already shown in circuit breaking example above**
+
+**Use for**: Automatic failure handling without manual intervention
+
+---
+
+#### Timeouts + Retries Together
+
+**Example scenario**:
+- Timeout: 10 seconds
+- Retries: 3 attempts
+- Per try timeout: 2 seconds
+
+**What happens**:
+- Try 1: Wait 2 seconds → Fail
+- Try 2: Wait 2 seconds → Fail
+- Try 3: Wait 2 seconds → Fail
+- Total: 6 seconds (less than 10 second timeout)
+
+**Rule**: Total time never exceeds main timeout
+
+---
+
+#### Resiliency in Ambient Mode
+
+**Different from Sidecar Mode**: Traffic handled at different layers
+
+#### L4 Traffic (Network Layer)
+- Handled by **ztunnel**
+- Basic timeouts and retries
+
+#### L7 Traffic (Application Layer)
+- Handled by **waypoint proxies**
+- HTTP-based retries
+- Circuit breaking
+- Advanced policies
+
+**Configuration**: Still use VirtualService, but enforcement happens at different layers
+
+---
+
+### Quick Reference
+
+| Feature | What It Does | Where Configured |
+|---------|--------------|------------------|
+| **Timeout** | Stop waiting after X seconds | VirtualService |
+| **Retry** | Try again on failure | VirtualService |
+| **Circuit Breaker** | Limit connections | DestinationRule |
+| **Outlier Detection** | Remove unhealthy pods | DestinationRule |
+
+---
+
+### Common Retry Conditions
+
+| Condition | When to Use |
+|-----------|-------------|
+| `5xx` | Server errors (500, 503, 504) |
+| `connect-failure` | Can't connect to service |
+| `reset` | Connection reset |
+| `gateway-error` | Bad gateway (502, 503, 504) |
+| `refused-stream` | Stream refused |
+
+---
+
+#### Best Practices
+
+**Timeouts**:
+- Set reasonable timeouts (not too short, not too long)
+- Consider downstream service timeouts
+- Account for network latency in distributed systems
+
+**Retries**:
+- Only retry idempotent operations (GET, not POST)
+- Use exponential backoff (not shown, but recommended)
+- Limit retry attempts (3-5 max)
+- Set appropriate retry conditions
+
+**Circuit Breaking**:
+- Set based on service capacity
+- Monitor ejection rates and adjust thresholds
+- Consider peak traffic patterns
+
+**Outlier Detection**:
+- Check frequently (every 5-10 seconds)
+- Eject for reasonable time (30-60 seconds)
+- Don't eject too aggressively to avoid cascading failures
+
+#### Resiliency Patterns Summary
+
+| Pattern | Purpose | Configuration | Best For |
+|---------|---------|---------------|----------|
+| **Timeout** | Prevent hanging requests | `timeout: 10s` | Slow services |
+| **Retry** | Handle transient failures | `attempts: 3` | Network issues |
+| **Circuit Breaker** | Prevent overload | `maxRequests: 50` | Capacity protection |
+| **Outlier Detection** | Remove failing instances | `consecutiveErrors: 5` | Automatic recovery |
+
+:::tip Key Takeaway
+**Resiliency** = Handle failures gracefully without cascading effects
+
+**Timeouts** = Don't wait forever (typically 10-30s)
+
+**Retries** = Try again for transient failures (3 attempts, 2s each)
+
+**Circuit Breaker** = Stop overloading services (limit connections)
+
+**Outlier Detection** = Remove unhealthy pods automatically (5 errors → eject 30s)
+
+**Ambient Mode** = ztunnel handles L4, waypoint handles L7 policies
+
+**Use for**: Preventing cascading failures, improving reliability, automatic recovery
+:::
+
+---
+
+
+---
+
+### Failure Injection
+
+#### What is Failure Injection?
+
+**Failure injection** = Intentionally breaking things to test how your app handles failures.
+
+**Why needed**: Test if your app is resilient BEFORE real failures happen in production.
+
+**Like**: Fire drill - practice for emergencies
+
+---
+
+#### Two Types of Failure Injection
+
+##### 1. Abort (Fake Errors)
+Return error codes to simulate service failures
+
+##### 2. Delay (Fake Slowness)
+Add delays to simulate slow network or overloaded service
+
+---
+
+#### 1. Abort - Injecting Errors
+
+**What it does**: Return HTTP error code instead of calling real service
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: customers-service
+  namespace: default
+spec:
+  hosts:
+  - "customers.example.com"
+  gateways:
+  - my-gateway
+  http:
+  - route:
+    - destination:
+        host: customers.default.svc.cluster.local
+        subset: v1
+    fault:
+      abort:
+        percentage:
+          value: 30
+        httpStatus: 404
+```
+
+**What this does**:
+- 30% of requests → Return HTTP 404 (Not Found)
+- 70% of requests → Work normally
+
+**Common error codes to inject**:
+- `404` - Not Found
+- `500` - Internal Server Error
+- `503` - Service Unavailable
+
+**Use for**: Testing error handling in your app
+
+---
+
+#### 2. Delay - Injecting Slowness
+
+**What it does**: Add delay before forwarding request
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: customers-service
+  namespace: default
+spec:
+  hosts:
+  - "customers.example.com"
+  gateways:
+  - my-gateway
+  http:
+  - route:
+    - destination:
+        host: customers.default.svc.cluster.local
+        subset: v1
+    fault:
+      delay:
+        percentage:
+          value: 5
+        fixedDelay: 3s
+```
+
+**What this does**:
+- 5% of requests → Wait 3 seconds before forwarding
+- 95% of requests → No delay
+
+**Use for**: Testing timeout handling, slow network scenarios
+
+---
+
+#### Combining Abort + Delay
+
+You can use both together!
+
+```yaml
+fault:
+  abort:
+    percentage:
+      value: 10
+    httpStatus: 500
+  delay:
+    percentage:
+      value: 20
+    fixedDelay: 5s
+```
+
+**What this does**:
+- 10% → Return 500 error
+- 20% → Add 5 second delay
+- 70% → Work normally
+
+---
+
+#### Important Notes
+
+##### Percentage Field
+- If NOT specified → Affects 100% of requests
+- If specified → Affects only that percentage
+
+##### Scope
+- Only affects traffic using THIS VirtualService
+- Does NOT affect all consumers of the service
+- Targeted to specific routes/destinations
+
+##### Retry Policies
+**Important**: Fault injection does NOT trigger retry policies!
+
+**Example**:
+- You inject HTTP 500 error
+- You have retry policy for 500 errors
+- Retry will NOT happen (fault injection bypasses retries)
+
+**Why**: Fault injection happens at proxy level, before retry logic
+
+---
+
+#### Gateway API Note
+
+**Important**: Kubernetes Gateway API does NOT support fault injection yet!
+
+**If you need fault injection**: Use Istio VirtualService (not HTTPRoute)
+
+---
+
+#### Testing Scenarios
+
+##### Test Error Handling
+```yaml
+fault:
+  abort:
+    percentage:
+      value: 50
+    httpStatus: 503
+```
+**Tests**: Does app show good error message? Does it retry?
+
+##### Test Timeout Handling
+```yaml
+fault:
+  delay:
+    percentage:
+      value: 100
+    fixedDelay: 15s
+```
+**Tests**: Does app timeout properly? Does it show loading state?
+
+##### Test Partial Failures
+```yaml
+fault:
+  abort:
+    percentage:
+      value: 10
+    httpStatus: 500
+```
+**Tests**: Does app work when 10% of requests fail?
+
+---
+
+### Best Practices
+
+**Start Small**:
+- Begin with 5-10% of traffic
+- Gradually increase if needed
+- Monitor application behavior closely
+
+**Test in Non-Production First**:
+- Use in dev/staging environments
+- Don't test in production (unless you know what you're doing)
+- Have rollback plan ready
+
+**Monitor Impact**:
+- Watch metrics while testing
+- Check if app handles failures gracefully
+- Verify error messages are user-friendly
+
+**Document Tests**:
+- Record what you tested and results
+- Note how app behaved under different failure scenarios
+- Share findings with development team
+
+**Remove After Testing**:
+- Don't leave fault injection enabled permanently
+- Remove or set percentage to 0 when done
+- Clean up test configurations
+
+#### Failure Injection Reference
+
+| Type | What It Does | Example | Use Case |
+|------|--------------|---------|-----------|
+| **Abort** | Return error code | 30% get HTTP 404 | Test error handling |
+| **Delay** | Add wait time | 5% wait 3 seconds | Test timeout handling |
+| **Both** | Errors + delays | 10% error, 20% delay | Comprehensive testing |
+
+#### Common Testing Scenarios
+
+| Scenario | Configuration | What It Tests | Expected Behavior |
+|----------|---------------|---------------|-------------------|
+| **Service down** | `abort: 100%, httpStatus: 503` | Total failure handling | Graceful degradation |
+| **Intermittent errors** | `abort: 10%, httpStatus: 500` | Partial failure handling | Retry mechanisms |
+| **Slow network** | `delay: 100%, fixedDelay: 5s` | Timeout handling | Loading states |
+| **Flaky service** | `abort: 30%, httpStatus: 503` | Retry logic | Circuit breaker activation |
+
+:::warning Important Limitations
+- **Gateway API**: Does NOT support fault injection yet
+- **Retry bypass**: Fault injection does NOT trigger retry policies
+- **Scope**: Only affects traffic using the specific VirtualService
+:::
+
+:::tip Key Takeaway
+**Failure injection** = Intentionally break things to test resilience (chaos engineering)
+
+**Abort** = Fake errors (HTTP 404, 500, 503) to test error handling
+
+**Delay** = Fake slowness (3s, 5s delays) to test timeout handling
+
+**Percentage** = How much traffic to affect (30% = 30 out of 100 requests)
+
+**Does NOT trigger retries** = Bypasses retry policies (happens at proxy level)
+
+**Only in VirtualService** = Gateway API doesn't support this feature yet
+
+**Use for**: Testing error handling, timeout handling, resilience testing, chaos engineering
+
+**Remember**: Always remove after testing - don't leave enabled in production
+:::
+
+---
+
+
+### Advanced Routing
+
+#### What is Advanced Routing?
+
+**Advanced routing** = Route traffic based on request details (not just weights).
+
+**Beyond simple routing**: Instead of just "70% to v1, 30% to v2", route based on URL, headers, methods, etc.
+
+**Like**: Smart traffic cop that checks license plates, not just counts cars.
+
+---
+
+#### What You Can Match On
+
+| Property | What It Matches | Example |
+|----------|-----------------|---------|
+| **uri** | Request URL path | `/api/v1/users` |
+| **schema** | Protocol | `http`, `https` |
+| **method** | HTTP method | `GET`, `POST`, `DELETE` |
+| **authority** | Host header | `api.example.com` |
+| **headers** | Request headers | `user-agent: Firefox` |
+
+**Important**: If you match on headers, other properties (uri, schema, method, authority) are ignored!
+
+---
+
+#### Three Ways to Match
+
+##### 1. Exact Match
+Must match exactly
+
+```yaml
+uri:
+  exact: "/api/v1"
+```
+Matches: `/api/v1` only
+Doesn't match: `/api/v1/users`, `/api/v2`
+
+##### 2. Prefix Match
+Matches beginning of string
+
+```yaml
+uri:
+  prefix: "/api"
+```
+Matches: `/api`, `/api/v1`, `/api/v1/users`
+Doesn't match: `/users/api`
+
+##### 3. Regex Match
+Pattern matching
+
+```yaml
+headers:
+  user-agent:
+    regex: ".*Firefox.*"
+```
+Matches: Any user-agent containing "Firefox"
+
+---
+
+#### Example 1: Route by URL Path
+
+```yaml
+http:
+- match:
+  - uri:
+      prefix: /v1
+  route:
+  - destination:
+      host: customers.default.svc.cluster.local
+      subset: v1
+```
+
+**What this does**: All requests to `/v1/*` go to v1 subset
+
+---
+
+#### Example 2: Route by Header
+
+```yaml
+http:
+- match:
+  - headers:
+      user-agent:
+        regex: '.*Firefox.*'
+  route:
+  - destination:
+      host: customers.default.svc.cluster.local
+      subset: v2
+```
+
+**What this does**: Firefox users go to v2, others go elsewhere
+
+---
+
+#### Rewriting Requests
+
+**Problem**: Your service moved from `/v1/api` to `/v2/api`, but clients still call `/v1/api`
+
+**Solution**: Rewrite the URL before forwarding
+
+```yaml
+http:
+- match:
+  - uri:
+      prefix: /v1/api
+  rewrite:
+    uri: /v2/api
+  route:
+  - destination:
+      host: customers.default.svc.cluster.local
+```
+
+**What this does**:
+- Client calls: `/v1/api/users`
+- Envoy rewrites to: `/v2/api/users`
+- Service receives: `/v2/api/users`
+
+**Use for**: API versioning, backward compatibility
+
+---
+
+#### Redirecting Requests
+
+**Different from rewrite**: Sends HTTP redirect response to client
+
+```yaml
+http:
+- match:
+  - headers:
+      my-header:
+        exact: hello
+  redirect:
+    uri: /hello
+    authority: my-service.default.svc.cluster.local:8000
+```
+
+**What this does**: Client gets HTTP 301/302 redirect to new location
+
+**Important**: `redirect` and `destination` are mutually exclusive (use one or the other, not both)
+
+---
+
+#### AND vs OR Logic
+
+##### AND Logic (All conditions must match)
+
+```yaml
+http:
+- match:
+  - uri:
+      prefix: /v1
+    headers:
+      my-header:
+        exact: hello
+```
+
+**Matches when**: URI starts with `/v1` AND header `my-header` equals `hello`
+
+##### OR Logic (Any condition can match)
+
+```yaml
+http:
+- match:
+  - uri:
+      prefix: /v1
+- match:
+  - headers:
+      my-header:
+        exact: hello
+```
+
+**Matches when**: URI starts with `/v1` OR header `my-header` equals `hello`
+
+**How it works**: Tries first match, if fails, tries second match, etc.
+
+---
+
+#### Real-World Examples
+
+##### Example 1: Mobile vs Desktop
+
+```yaml
+http:
+- match:
+  - headers:
+      user-agent:
+        regex: ".*Mobile.*"
+  route:
+  - destination:
+      host: mobile-api.default.svc.cluster.local
+- match:
+  - headers:
+      user-agent:
+        regex: ".*Desktop.*"
+  route:
+  - destination:
+      host: desktop-api.default.svc.cluster.local
+```
+
+**Use case**: Different API for mobile and desktop users
+
+##### Example 2: API Versioning
+
+```yaml
+http:
+- match:
+  - uri:
+      prefix: /api/v2
+  route:
+  - destination:
+      host: api.default.svc.cluster.local
+      subset: v2
+- match:
+  - uri:
+      prefix: /api/v1
+  route:
+  - destination:
+      host: api.default.svc.cluster.local
+      subset: v1
+```
+
+**Use case**: Route to different versions based on URL
+
+##### Example 3: Beta Users
+
+```yaml
+http:
+- match:
+  - headers:
+      x-beta-user:
+        exact: "true"
+  route:
+  - destination:
+      host: app.default.svc.cluster.local
+      subset: beta
+- route:
+  - destination:
+      host: app.default.svc.cluster.local
+      subset: stable
+```
+
+**Use case**: Beta users get new features, others get stable version
+
+---
+
+#### Gateway API (HTTPRoute)
+
+**Modern alternative** to VirtualService
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: customers-route
+spec:
+  parentRefs:
+  - name: my-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v1
+    - headers:
+      - name: user-agent
+        value: Firefox
+        type: RegularExpression
+    backendRefs:
+    - name: customers-service
+      port: 8080
+```
+
+**Same functionality**: Match on path and headers, route to service
+
+**Difference**: Kubernetes standard (not Istio-specific)
+
+---
+
+### Quick Reference
+
+| Feature | VirtualService | HTTPRoute (Gateway API) |
+|---------|----------------|-------------------------|
+| **Match URI** | `uri: prefix: /v1` | `path: type: PathPrefix, value: /v1` |
+| **Match Header** | `headers: name: exact: value` | `headers: name: name, value: value` |
+| **Rewrite** | `rewrite: uri: /v2` | Similar support |
+| **Redirect** | `redirect: uri: /new` | Similar support |
+| **Complexity** | More features | Simpler syntax |
+| **Standard** | Istio-specific | Kubernetes standard |
+
+#### Best Practices
+
+**Route Ordering**:
+- Put most specific matches first
+- General patterns should come last
+- Test route precedence carefully
+
+```yaml
+# ✅ Good - specific first
+- match:
+  - uri:
+      exact: /api/v1/admin
+- match:
+  - uri:
+      prefix: /api/v1
+
+# ❌ Bad - general first (admin never reached)
+- match:
+  - uri:
+      prefix: /api/v1
+- match:
+  - uri:
+      exact: /api/v1/admin
+```
+
+**Pattern Matching**:
+- Use `prefix` for flexibility: `/api` matches `/api/v1`, `/api/v2`, etc.
+- Use `exact` for specific endpoints: `/health`, `/metrics`
+- Test regex patterns carefully - wrong regex can break routing
+
+**Documentation**:
+- Document complex routing logic
+- Include examples of expected behavior
+- Maintain routing decision trees for complex scenarios
+
+#### Advanced Routing Patterns
+
+| Pattern | Use Case | Implementation |
+|---------|----------|----------------|
+| **Feature Flags** | Beta users get new features | Header-based routing |
+| **API Versioning** | Multiple API versions | URI prefix matching |
+| **Device Targeting** | Mobile vs Desktop | User-Agent header matching |
+| **Geographic Routing** | Region-specific services | Custom header routing |
+| **Canary Testing** | Gradual feature rollout | Percentage + header combination |
+
+:::tip Key Takeaway
+**Advanced routing** = Route based on request details (URL, headers, method, etc.)
+
+**Match types** = Exact (precise), Prefix (starts with), Regex (pattern)
+
+**Rewrite** = Change URL before forwarding (transparent to client)
+
+**Redirect** = Send client to new location (client sees HTTP redirect)
+
+**AND logic** = All conditions in one match block must be true
+
+**OR logic** = Multiple match blocks (first match wins)
+
+**Gateway API** = Modern Kubernetes standard (recommended for new projects)
+
+**Use for**: API versioning, A/B testing, canary deployments, device targeting, feature flags
+:::
+
+---
+
+### ServiceEntry
+
+#### What is ServiceEntry?
+
+**ServiceEntry** = Add external services to Istio's service registry. Makes external services look like they're part of your mesh.
+
+**Why needed**: Apply Istio features (routing, retries, timeouts) to external services.
+
+**Like**: Adding external contacts to your phone book so you can use speed dial.
+
+---
+
+#### What You Can Do With ServiceEntry
+
+Once external service is in registry:
+- Route traffic to it
+- Apply retry policies
+- Set timeouts
+- Inject failures (for testing)
+- Monitor with metrics
+
+**All the same features** as internal services!
+
+---
+
+#### Basic Example: External API
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: external-svc
+spec:
+  hosts:
+  - api.external-svc.com
+  ports:
+  - number: 443
+    name: https
+    protocol: TLS
+  resolution: DNS
+  location: MESH_EXTERNAL
+```
+
+**What this does**: Adds `api.external-svc.com` to service registry
+
+**Now you can**: Apply VirtualService, DestinationRule to this external API
+
+---
+
+#### Key Fields
+
+##### hosts
+**What it is**: External service hostname(s)
+
+**Can be**: Single or multiple hosts
+
+**Example**: `api.external-svc.com`, `*.google.com`
+
+##### ports
+**What it is**: Which ports the service uses
+
+**Example**:
+```yaml
+ports:
+- number: 443
+  name: https
+  protocol: TLS
+```
+
+##### resolution
+**How to find service IP**:
+
+- **DNS**: Dynamic DNS lookup (IP can change)
+- **STATIC**: Fixed IP addresses (IP never changes)
+
+**When to use**:
+- `DNS` → Cloud services, APIs (IPs change)
+- `STATIC` → On-premise servers (fixed IPs)
+
+##### location
+**Where service is**:
+
+- **MESH_EXTERNAL**: Outside the mesh (external APIs)
+- **MESH_INTERNAL**: Inside the mesh (VMs, other clusters)
+
+**Important**: Controls if mTLS is used automatically
+
+---
+
+#### How Envoy Checks Hosts
+
+When multiple hosts defined, Envoy checks in this order:
+
+1. **HTTP Authority/Host header** (HTTP/1.1, HTTP/2)
+2. **SNI** (Server Name Indication for TLS)
+3. **IP address and port**
+
+If none can be inspected → Either forward blindly or drop (depends on config)
+
+---
+
+#### exportTo Field
+
+**What it does**: Control which namespaces can see this ServiceEntry
+
+**Options**:
+- `*` (default): All namespaces can see it
+- `.`: Only same namespace
+- `["namespace1", "namespace2"]`: Specific namespaces
+
+**Example**:
+```yaml
+spec:
+  exportTo:
+  - "."  # Only this namespace
+```
+
+---
+
+#### VM Integration (WorkloadEntry)
+
+**Use case**: Migrate VMs to Kubernetes gradually
+
+**How it works**: Register VMs as workloads in Istio
+
+##### Step 1: Define WorkloadEntry for VMs
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: WorkloadEntry
+metadata:
+  name: customers-vm-1
+spec:
+  serviceAccount: customers
+  address: 1.0.0.0
+  labels:
+    app: customers
+    instance-id: vm1
+---
+apiVersion: networking.istio.io/v1
+kind: WorkloadEntry
+metadata:
+  name: customers-vm-2
+spec:
+  serviceAccount: customers
+  address: 2.0.0.0
+  labels:
+    app: customers
+    instance-id: vm2
+```
+
+**What this does**: Registers 2 VMs with IPs 1.0.0.0 and 2.0.0.0
+
+##### Step 2: Create ServiceEntry with workloadSelector
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: customers-svc
+spec:
+  hosts:
+  - customers.com
+  location: MESH_INTERNAL
+  ports:
+  - number: 80
+    name: http
+    protocol: HTTP
+  resolution: STATIC
+  workloadSelector:
+    labels:
+      app: customers
+```
+
+**What this does**: 
+- Includes VMs AND Kubernetes pods with label `app: customers`
+- Load balances across both VMs and pods
+- Treats VMs as part of mesh
+
+---
+
+#### MESH_INTERNAL vs MESH_EXTERNAL
+
+| Feature | MESH_INTERNAL | MESH_EXTERNAL |
+|---------|---------------|---------------|
+| **Use for** | VMs, other clusters | External APIs |
+| **mTLS** | Yes (automatic) | No |
+| **Part of mesh** | Yes | No |
+| **Example** | VM workloads | api.stripe.com |
+
+---
+
+#### Real-World Examples
+
+##### Example 1: External Payment API
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: stripe-api
+spec:
+  hosts:
+  - api.stripe.com
+  ports:
+  - number: 443
+    name: https
+    protocol: TLS
+  resolution: DNS
+  location: MESH_EXTERNAL
+```
+
+**Use case**: Apply retry policies to Stripe API calls
+
+##### Example 2: Database on VM
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: postgres-vm
+spec:
+  hosts:
+  - postgres.internal
+  ports:
+  - number: 5432
+    name: postgres
+    protocol: TCP
+  resolution: STATIC
+  location: MESH_INTERNAL
+  endpoints:
+  - address: 10.0.0.50
+```
+
+**Use case**: Include VM database in mesh, apply mTLS
+
+##### Example 3: Multiple External APIs
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: google-apis
+spec:
+  hosts:
+  - "*.googleapis.com"
+  ports:
+  - number: 443
+    name: https
+    protocol: TLS
+  resolution: DNS
+  location: MESH_EXTERNAL
+```
+
+**Use case**: All Google APIs accessible through mesh
+
+---
+
+#### Important Note: Global vs Namespace Config
+
+**Global config** (in `istio-system` namespace):
+- Applies to ALL namespaces
+- Acts as default
+
+**Namespace-specific config**:
+- Overrides global config
+- Only applies to that namespace
+
+**Example**: ServiceEntry in `istio-system` → Available everywhere (unless `exportTo` restricts it)
+
+---
+
+### Quick Reference
+
+| Field | Purpose | Example Values |
+|-------|---------|----------------|
+| **hosts** | Service hostname | `api.example.com` |
+| **ports** | Service ports | `443`, `80`, `5432` |
+| **resolution** | How to find IP | `DNS`, `STATIC` |
+| **location** | Where service is | `MESH_EXTERNAL`, `MESH_INTERNAL` |
+| **exportTo** | Visibility | `*`, `.`, `["ns1"]` |
+| **workloadSelector** | Select VMs/pods | `app: customers` |
+
+---
+
+#### Best Practices
+
+**External Services**:
+- Use `MESH_EXTERNAL` for third-party APIs
+- Set appropriate `exportTo` to limit visibility
+- Monitor external service dependencies
+
+**VM Integration**:
+- Use `MESH_INTERNAL` for VMs joining the mesh
+- Implement proper service accounts for VMs
+- Plan gradual migration from VMs to containers
+
+**Resolution Strategy**:
+- Use `DNS` for cloud services (IPs change)
+- Use `STATIC` for on-premise services (fixed IPs)
+- Consider load balancing implications
+
+#### ServiceEntry Configuration Reference
+
+| Field | Purpose | Example Values | Use Case |
+|-------|---------|----------------|----------|
+| **hosts** | Service hostname | `api.example.com` | External API |
+| **ports** | Service ports | `443`, `80`, `5432` | Protocol definition |
+| **resolution** | IP discovery method | `DNS`, `STATIC` | Cloud vs on-premise |
+| **location** | Service location | `MESH_EXTERNAL`, `MESH_INTERNAL` | Security boundary |
+| **exportTo** | Visibility scope | `*`, `.`, `["ns1"]` | Access control |
+| **workloadSelector** | VM/pod selection | `app: customers` | Hybrid deployments |
+
+:::tip Key Takeaway
+**ServiceEntry** = Add external services to Istio's service registry
+
+**MESH_EXTERNAL** = External APIs (no automatic mTLS)
+
+**MESH_INTERNAL** = VMs, other clusters (with automatic mTLS)
+
+**WorkloadEntry** = Register individual VMs as mesh workloads
+
+**Resolution DNS** = Dynamic IPs for cloud services
+
+**Resolution STATIC** = Fixed IPs for on-premise services
+
+**exportTo** = Control which namespaces can see the service
+
+**Use for**: External API management, VM migration, multi-cluster setups, hybrid deployments
+:::
+
+---
+
+### Sidecar Resource
+
+#### What is Sidecar Resource?
+
+**Sidecar resource** = Control what kind of configuration each proxy receives. Limits scope to improve performance.
+
+**Problem it solves**: By default, Istio pushes ALL config to ALL proxies. In large clusters, this wastes resources.
+
+**Solution**: Tell each proxy to only care about services it actually talks to.
+
+**Like**: Only getting news about your city, not the whole world.
+
+---
+
+#### Why Use It?
+
+**Default behavior**:
+- Any change anywhere → Config pushed to ALL proxies
+- Large clusters → Lots of unnecessary updates
+- Wastes memory and CPU
+
+**With Sidecar resource**:
+- Only relevant config pushed to each proxy
+- Better performance
+- Less memory usage
+- Faster updates
+
+---
+
+### Important Note
+
+**Sidecar resource does NOT enforce security!**
+
+It only controls:
+- What config proxy receives
+- What services proxy knows about
+
+It does NOT control:
+- What traffic is allowed
+- Security policies
+
+---
+
+#### Basic Example: Limit Namespace Scope
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: default
+  namespace: foo
+spec:
+  egress:
+  - hosts:
+    - "./*"              # Services in same namespace (foo)
+    - "istio-system/*"   # Services in istio-system
+```
+
+**What this does**:
+- Workloads in `foo` namespace only see:
+  - Services in `foo` namespace
+  - Services in `istio-system` namespace
+- Changes in `bar` namespace → No config update to `foo` workloads
+
+**Result**: Less config, better performance
+
+---
+
+#### Host Format
+
+**Pattern**: `namespace/service`
+
+**Examples**:
+- `./*` → All services in same namespace
+- `istio-system/*` → All services in istio-system
+- `default/customers` → Specific service
+- `*/*` → All services in all namespaces (default behavior)
+
+---
+
+#### Workload Selector
+
+**Default**: Sidecar applies to ALL workloads in namespace
+
+**With selector**: Apply to specific workloads only
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: versioned-sidecar
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      version: v1
+  egress:
+  - hosts:
+    - "default/*"
+    - "istio-system/*"
+```
+
+**What this does**: Only applies to pods with label `version: v1`
+
+**Use case**: Different config for different versions
+
+---
+
+#### Ingress Listener (Inbound Traffic)
+
+**What it does**: Control how proxy receives incoming traffic
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: ingress-sidecar
+  namespace: default
+spec:
+  ingress:
+  - port:
+      number: 3000
+      protocol: HTTP
+      name: somename
+    defaultEndpoint: 127.0.0.1:8080
+```
+
+**What this does**:
+- Listen on port 3000
+- Forward traffic to 127.0.0.1:8080 (your app)
+
+**Use case**: Custom port mapping
+
+---
+
+#### Egress Listener (Outbound Traffic)
+
+**What it does**: Control what external services proxy can access
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: egress-sidecar
+  namespace: default
+spec:
+  egress:
+  - port:
+      number: 8080
+      protocol: HTTP
+    hosts:
+    - "staging/*"
+```
+
+**What this does**:
+- Only allow outbound traffic on port 8080
+- Only to services in `staging` namespace
+
+**Use case**: Restrict what services can talk to
+
+---
+
+#### Real-World Examples
+
+##### Example 1: Microservice Only Talks to Database
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: api-sidecar
+  namespace: production
+spec:
+  workloadSelector:
+    labels:
+      app: api
+  egress:
+  - hosts:
+    - "production/database"
+    - "istio-system/*"
+```
+
+**Use case**: API service only needs to know about database
+
+##### Example 2: Frontend Only Talks to Backend
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: frontend-sidecar
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: frontend
+  egress:
+  - hosts:
+    - "default/backend"
+    - "default/auth"
+```
+
+**Use case**: Frontend only talks to backend and auth services
+
+##### Example 3: Namespace Isolation
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: default
+  namespace: team-a
+spec:
+  egress:
+  - hosts:
+    - "./*"              # Only team-a services
+    - "shared/*"         # Shared services
+    - "istio-system/*"   # Istio services
+```
+
+**Use case**: Team A can't see Team B services
+
+---
+
+### Best Practices
+
+**1. Use in Large Clusters**
+- 100+ services → Definitely use Sidecar resource
+- Reduces memory and CPU usage
+
+**2. Start with Namespace Scope**
+```yaml
+egress:
+- hosts:
+  - "./*"
+  - "istio-system/*"
+```
+Most common pattern
+
+**3. Add Specific Services as Needed**
+```yaml
+egress:
+- hosts:
+  - "./*"
+  - "production/database"
+  - "istio-system/*"
+```
+
+**4. Use Workload Selectors for Fine Control**
+Different configs for different workloads
+
+**5. Monitor Impact**
+Check if performance improves after applying
+
+---
+
+### Common Patterns
+
+#### Pattern 1: Same Namespace Only
+```yaml
+egress:
+- hosts:
+  - "./*"
+  - "istio-system/*"
+```
+**When**: Services only talk within namespace
+
+#### Pattern 2: Cross-Namespace Communication
+```yaml
+egress:
+- hosts:
+  - "./*"
+  - "other-namespace/*"
+  - "istio-system/*"
+```
+**When**: Need to talk to specific other namespace
+
+#### Pattern 3: Specific Services Only
+```yaml
+egress:
+- hosts:
+  - "default/service-a"
+  - "default/service-b"
+  - "istio-system/*"
+```
+**When**: Only talk to 2-3 specific services
+
+---
+
+### Quick Reference
+
+| Field | Purpose | Example |
+|-------|---------|---------|
+| **egress.hosts** | What services proxy can see | `./*`, `default/*` |
+| **ingress.port** | Inbound port config | `3000` |
+| **workloadSelector** | Which pods this applies to | `app: frontend` |
+| **defaultEndpoint** | Where to forward traffic | `127.0.0.1:8080` |
+
+---
+
+### Key Takeaway
+
+**Sidecar resource** = Limit what config each proxy receives
+
+**Default** = All proxies get all config (wasteful)
+
+**With Sidecar** = Each proxy only gets relevant config (efficient)
+
+**Does NOT enforce security** = Only controls config scope
+
+**Egress hosts** = What services proxy knows about
+
+**Workload selector** = Apply to specific pods
+
+**Best for** = Large clusters (100+ services)
+
+**Use for**: Performance optimization, reducing memory usage, faster config updates
+
+#### Performance Impact
+
+| Cluster Size | Without Sidecar Resource | With Sidecar Resource | Improvement |
+|--------------|-------------------------|----------------------|-------------|
+| **50 services** | Minimal impact | Slight improvement | 10-15% |
+| **100 services** | Noticeable overhead | Moderate improvement | 25-40% |
+| **500+ services** | Significant overhead | Major improvement | 50-70% |
+
+---
+
+**4. Use Workload Selectors for Fine Control**
+Different configs for different workloads
+
+**5. Monitor Impact**
+Check if performance improves after applying
+
+---
+### Common Patterns
+
+#### Pattern 1: Same Namespace Only
+```yaml
+egress:
+- hosts:
+  - "./*"
+  - "istio-system/*"
+```
+**When**: Services only talk within namespace
+
+#### Pattern 2: Cross-Namespace Communication
+```yaml
+egress:
+- hosts:
+  - "./*"
+  - "other-namespace/*"
+  - "istio-system/*"
+```
+**When**: Need to talk to specific other namespace
+
+#### Pattern 3: Specific Services Only
+```yaml
+egress:
+- hosts:
+  - "default/service-a"
+  - "default/service-b"
+  - "istio-system/*"
+```
+**When**: Only talk to 2-3 specific services
+
+---
+
+### Quick Reference
+
+| Field | Purpose | Example |
+|-------|---------|---------|
+| **egress.hosts** | What services proxy can see | `./*`, `default/*` |
+| **ingress.port** | Inbound port config | `3000` |
+| **workloadSelector** | Which pods this applies to | `app: frontend` |
+| **defaultEndpoint** | Where to forward traffic | `127.0.0.1:8080` |
+
+---
+
+### Key Takeaway
+
+**Sidecar resource** = Limit what config each proxy receives
+
+**Default** = All proxies get all config (wasteful)
+
+**With Sidecar** = Each proxy only gets relevant config (efficient)
+
+**Does NOT enforce security** = Only controls config scope
+
+**Egress hosts** = What services proxy knows about
+
+**Workload selector** = Apply to specific pods
+
+**Best for** = Large clusters (100+ services)
+
+**Use for**: Performance optimization, reducing memory usage, faster config updates
+
+#### Sidecar Resource Reference
+
+| Field | Purpose | Example | Impact |
+|-------|---------|---------|--------|
+| **egress.hosts** | Services proxy can see | `./*`, `default/*` | Memory usage |
+| **ingress.port** | Inbound port config | `3000` | Port mapping |
+| **workloadSelector** | Target specific pods | `app: frontend` | Granular control |
+| **defaultEndpoint** | Traffic forwarding | `127.0.0.1:8080` | Custom routing |
+
+:::warning Important Limitation
+**Sidecar resource does NOT enforce security!**
+
+It only controls:
+- What configuration each proxy receives
+- What services proxy knows about
+
+It does NOT control:
+- What traffic is actually allowed
+- Security policies or access control
+:::
+
+:::tip Key Takeaway
+**Sidecar resource** = Optimize proxy configuration scope for better performance
+
+**Default behavior** = All proxies get all config (wasteful in large clusters)
+
+**With Sidecar** = Each proxy only gets relevant config (efficient)
+
+**Does NOT enforce security** = Only controls configuration scope
+
+**Egress hosts** = Define which services proxy knows about
+
+**Workload selector** = Apply configuration to specific pods
+
+**Best for** = Large clusters (100+ services) with performance concerns
+
+**Use for**: Performance optimization, reducing memory usage, faster config updates
+:::
+
+---
+
+### EnvoyFilter
+
+#### What is EnvoyFilter?
+
+**EnvoyFilter** = Customize Envoy proxy configuration directly. Low-level control over proxy behavior.
+
+**Power**: Can modify anything in Envoy config
+
+**Danger**: Wrong config can break entire mesh!
+
+**Like**: Editing engine code directly - powerful but risky
+
+---
+
+#### When to Use EnvoyFilter
+
+**Use when**:
+- Istio doesn't provide the feature you need
+- Need very specific custom behavior
+- Adding custom headers
+- Injecting Lua or WASM filters
+
+**Don't use when**:
+- Istio already has the feature (use VirtualService, DestinationRule instead)
+- You're not sure what you're doing
+- In production without testing
+
+---
+
+#### Important Warnings
+
+⚠️ **Can break your mesh** if configured wrong
+
+⚠️ **Always test in staging first**
+
+⚠️ **Use minimal changes** - don't modify more than needed
+
+⚠️ **Requires Envoy knowledge** - understand Envoy proxy first
+
+---
+
+#### How It Works
+
+**Application order**:
+1. Filters in `istio-system` namespace (global) applied first
+2. Then filters in workload's namespace
+3. Applied incrementally (one after another)
+
+**Scope**:
+- `istio-system` namespace → Affects entire mesh
+- Workload namespace → Affects only that namespace
+
+---
+
+#### Example: Add Custom Header to Response
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: EnvoyFilter
+metadata:
+  name: api-header-filter
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: web-frontend
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        portNumber: 8080
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+            subFilter:
+              name: "envoy.filters.http.router"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.lua
+        typed_config:
+          "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua"
+          inlineCode: |
+            function envoy_on_response(response_handle)
+              response_handle:headers():add("api-version", "v1")
+            end
+```
+
+**What this does**:
+- Applies to workloads with label `app: web-frontend`
+- Adds header `api-version: v1` to all responses
+- Uses Lua script to modify response
+
+**Test it**:
+```bash
+curl -I http://your-service
+# Should see: api-version: v1
+```
+
+---
+
+#### Key Fields
+
+##### workloadSelector
+**What it does**: Which workloads this filter applies to
+
+**Example**: `app: web-frontend`
+
+##### configPatches
+**What it does**: List of modifications to make
+
+**Contains**: Match criteria + patch operation
+
+##### applyTo
+**What to modify**: HTTP_FILTER, LISTENER, CLUSTER, ROUTE, etc.
+
+##### match
+**Where to apply**: Context (SIDECAR_INBOUND, SIDECAR_OUTBOUND, GATEWAY)
+
+##### patch.operation
+**How to modify**:
+- `INSERT_BEFORE` - Add before existing filter
+- `INSERT_AFTER` - Add after existing filter
+- `REPLACE` - Replace existing filter
+- `REMOVE` - Remove filter
+- `MERGE` - Merge with existing
+
+---
+
+#### Common Use Cases
+
+##### 1. Adding/Modifying Headers
+Add custom headers for tracing, debugging, monitoring
+
+**Example**: Add request ID, version info, debug flags
+
+##### 2. Custom Lua Filters
+Run custom Lua code to process requests/responses
+
+**Example**: Custom authentication, request transformation
+
+##### 3. WASM Filters
+Inject WebAssembly filters for specialized processing
+
+**Example**: Custom rate limiting, data transformation
+
+##### 4. Override Istio Defaults
+Change Istio's default Envoy config for specific workloads
+
+**Example**: Custom timeout values, buffer sizes
+
+##### 5. Advanced Rate Limiting
+Implement complex rate limiting beyond Istio's built-in features
+
+---
+
+### Best Practices
+
+**1. Minimal Changes**
+Only modify what you absolutely need
+
+**2. Test in Staging**
+NEVER apply untested EnvoyFilter in production
+
+**3. Namespace Scoping**
+- Global changes → `istio-system` namespace
+- Specific workloads → Workload namespace
+
+**4. Document Everything**
+Write comments explaining what and why
+
+**5. Have Rollback Plan**
+Know how to quickly remove filter if things break
+
+**6. Monitor After Applying**
+Watch metrics, logs for issues
+
+---
+
+### Quick Reference
+
+| Field | Purpose | Example |
+|-------|---------|---------|
+| **workloadSelector** | Which pods | `app: frontend` |
+| **applyTo** | What to modify | `HTTP_FILTER`, `LISTENER` |
+| **match.context** | Where to apply | `SIDECAR_INBOUND`, `GATEWAY` |
+| **patch.operation** | How to modify | `INSERT_BEFORE`, `REPLACE` |
+
+---
+
+#### Safety Guidelines
+
+:::danger Production Safety
+**NEVER apply untested EnvoyFilter in production!**
+
+**Required steps**:
+1. Test in development environment first
+2. Validate in staging with production-like traffic
+3. Have immediate rollback plan ready
+4. Monitor metrics closely after deployment
+5. Start with single workload, then expand gradually
+:::
+
+#### EnvoyFilter Risk Assessment
+
+| Risk Level | Scope | Impact | Mitigation |
+|------------|-------|--------|-----------|
+| **High** | `istio-system` namespace | Entire mesh | Extensive testing, gradual rollout |
+| **Medium** | Workload namespace | Specific services | Thorough testing, monitoring |
+| **Low** | Single workload | Individual pods | Basic testing, easy rollback |
+
+#### EnvoyFilter Reference
+
+| Field | Purpose | Example | Risk Level |
+|-------|---------|---------|------------|
+| **workloadSelector** | Target specific pods | `app: frontend` | Medium |
+| **applyTo** | What to modify | `HTTP_FILTER`, `LISTENER` | High |
+| **match.context** | Where to apply | `SIDECAR_INBOUND`, `GATEWAY` | High |
+| **patch.operation** | How to modify | `INSERT_BEFORE`, `REPLACE` | Very High |
+
+#### Alternative Solutions
+
+Before using EnvoyFilter, consider these safer alternatives:
+
+| Need | EnvoyFilter | Safer Alternative |
+|------|-------------|-------------------|
+| **Traffic routing** | Complex patches | VirtualService |
+| **Load balancing** | Custom algorithms | DestinationRule |
+| **Timeouts/Retries** | Connection settings | VirtualService |
+| **Security policies** | Custom filters | AuthorizationPolicy |
+| **Rate limiting** | Custom Lua/WASM | Istio rate limiting |
+
+:::tip Key Takeaway
+**EnvoyFilter** = Direct Envoy proxy customization (advanced and risky!)
+
+**Powerful** = Can modify any Envoy configuration
+
+**Dangerous** = Can break entire mesh if misconfigured
+
+**Use sparingly** = Only when Istio built-in features aren't sufficient
+
+**Always test** = Development → Staging → Production (never skip steps)
+
+**Requires expertise** = Deep understanding of Envoy proxy architecture
+
+**Common uses** = Custom headers, Lua filters, WASM extensions, advanced rate limiting
+
+**Scope matters** = istio-system (global impact) vs namespace (local impact)
+
+**Last resort** = Try VirtualService, DestinationRule, AuthorizationPolicy first
+:::
+
+---
