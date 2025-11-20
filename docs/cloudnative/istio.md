@@ -1718,6 +1718,26 @@ External Client → Ingress Gateway (External IP) → VirtualService Rules → I
 - Simplified DNS management
 - Unified security policies
 
+:::tip Key Takeaway
+**Gateways** = Entry and exit points for mesh traffic
+
+**Ingress Gateway** = Handles incoming traffic (gets external IP)
+
+**Egress Gateway** = Handles outgoing traffic (optional, internal only)
+
+**Two configuration approaches**:
+1. **Istio Gateway** (traditional) + VirtualService
+2. **Kubernetes Gateway API** (modern) + HTTPRoute
+
+**Gateway alone** = Opens the door (defines ports and protocols)
+
+**Routing rules** = Direct traffic to services (VirtualService or HTTPRoute)
+
+**Use for**: Exposing services externally, controlling outbound traffic, centralized traffic management
+:::
+
+---
+
 ![Ingress Gateway Flow](/img/istio/istio-gateway.png)
 
 ### Gateway Configuration Approaches
@@ -5511,6 +5531,8 @@ kubectl apply -f customers-delay.yaml
 
 **Get gateway URL**:
 ```bash
+kubectl get vs 
+
 export GATEWAY_URL=$(kubectl get svc -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
@@ -5658,7 +5680,7 @@ istioctl dashboard kiali
 - **web-frontend** service displays **red border** (indicates errors)
 - Click service node for detailed metrics
 - Right sidebar shows approximately 50% success rate, 50% failure rate
-
+ 
 ![Kiali Error Graph](/static/img/istio/istio-kiali-3.png)
 ![Kiali Graph](/static/img/istio/istio-kiali-4.png)
 ---
@@ -5957,6 +5979,8 @@ kubectl apply -f web-frontend-vs.yaml
 
 **Get gateway URL**:
 ```bash
+kubectl get vs
+
 export GATEWAY_URL=$(kubectl get svc -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
@@ -6490,6 +6514,8 @@ kubectl apply -f customers.yaml
 
 **Get gateway URL**:
 ```bash
+kubectl get vs
+
 export GATEWAY_URL=$(kubectl get svc -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
@@ -6779,3 +6805,2519 @@ kubectl delete gateway gateway
 - Easy to control who sees new features
 - No impact on general user population
 :::
+
+---
+
+# Istio Security
+
+## Authentication
+
+### What is Authentication?
+
+**Authentication** = Proving who you are. Like showing your passport at airport.
+
+**In Istio**: Services prove their identity to each other before talking.
+
+**Question it answers**: "Is this really Service X trying to talk to me?"
+
+---
+
+### Access Control Question
+
+**Basic question**: Can a subject perform an action on an object?
+
+**In Kubernetes/Istio**: Can Service X perform an action on Service Y?
+
+**Three key parts**:
+1. **Principal** = Who (Service X)
+2. **Action** = What (GET, POST, PUT request)
+3. **Object** = Where (Service Y)
+
+**Example**: Can frontend service (principal) make GET request (action) to backend service (object)?
+
+---
+
+### How Istio Does Authentication
+
+#### Service Identity in Kubernetes
+
+**Service Account** = Identity given to each pod
+- Every pod gets unique identity
+- Used when pods talk to each other
+- Like a passport for services
+
+#### SPIFFE Identity
+
+**What is SPIFFE?** = Secure Production Identity Framework for Everyone
+
+**What Istio does**:
+1. Takes X.509 certificate from service account
+2. Creates SPIFFE identity from it
+3. Puts identity in certificate
+
+**SPIFFE format**:
+```
+spiffe://cluster.local/ns/<namespace>/sa/<service-account>
+```
+
+**Example**:
+```
+spiffe://cluster.local/ns/default/sa/frontend
+```
+
+This means: Service in `default` namespace using `frontend` service account
+
+---
+
+### Where Identity is Stored
+
+**Subject Alternate Name (SAN)** = Field in certificate that stores SPIFFE identity
+
+**Like**: Name field in your passport
+
+---
+
+### How Authentication Works
+
+#### Sidecar Mode
+
+**Who does it**: Envoy proxy (sidecar next to your app)
+
+**When**: During TLS handshake (when two services connect)
+
+**What happens**:
+1. Service A wants to talk to Service B
+2. Envoy proxies do TLS handshake
+3. Envoy checks SAN field in certificate
+4. Verifies SPIFFE identity
+5. If valid → Connection allowed
+6. If invalid → Connection rejected
+
+#### Ambient Mode
+
+**Who does it**: ztunnel (node-level proxy)
+
+**Difference**: Validation happens at node level, not per pod
+
+**Same result**: Identity verified before connection allowed
+
+---
+
+### After Authentication
+
+**Once authenticated**:
+- We know WHO the service is
+- Identity is validated and trusted
+- Can now use identity for security policies
+- Can enforce authorization rules (what they can do)
+
+**Flow**:
+```
+1. Service presents certificate
+   ↓
+2. Proxy validates SPIFFE identity
+   ↓
+3. Identity confirmed (authenticated)
+   ↓
+4. Can now check authorization (what they're allowed to do)
+```
+
+---
+
+### Key Concepts Summary
+
+| Concept | What It Is | Example |
+|---------|-----------|----------|
+| **Authentication** | Proving identity | Showing passport |
+| **Service Account** | Pod's identity | frontend-sa |
+| **SPIFFE** | Identity format | spiffe://cluster.local/ns/default/sa/frontend |
+| **X.509 Certificate** | Digital identity document | Like digital passport |
+| **SAN Field** | Where identity is stored | Name field in passport |
+| **TLS Handshake** | When validation happens | Security check at border |
+
+---
+
+### Authentication vs Authorization
+
+| | Authentication | Authorization |
+|---|----------------|---------------|
+| **Question** | Who are you? | What can you do? |
+| **Example** | Showing ID | Checking permissions |
+| **In Istio** | Verify SPIFFE identity | Check access policies |
+| **Happens** | First | Second (after authentication) |
+| **Result** | Authenticated principal | Allowed or denied action |
+
+---
+
+:::tip Key Takeaway
+**Authentication** = Proving who you are (identity verification)
+
+**Service Account** = Identity for pods in Kubernetes
+
+**SPIFFE** = Standard format for service identity (spiffe://cluster.local/ns/...)
+
+**X.509 Certificate** = Digital document containing identity
+
+**SAN field** = Where SPIFFE identity is stored in certificate
+
+**Validation happens**:
+- **Sidecar mode**: Envoy proxy validates during TLS handshake
+- **Ambient mode**: ztunnel validates at node level
+
+**After authentication**: Identity is trusted, can enforce authorization policies
+
+**Use for**: Secure service-to-service communication, zero-trust networking
+:::
+
+---
+
+## Certificate Creation and Rotation
+
+### What are Certificates?
+
+**X.509 Certificate** = Digital document that proves identity. Like a digital passport.
+
+**Purpose**: Enable mTLS (mutual TLS) for secure communication between services.
+
+**Managed by**: Istio handles everything automatically - creation, renewal, rotation.
+
+---
+
+### Certificate Lifecycle
+
+**Three stages**:
+1. **Issuance** = Creating new certificate
+2. **Renewal** = Updating before expiration
+3. **Rotation** = Replacing old with new certificate
+
+**All automatic** = No manual work needed!
+
+---
+
+### Sidecar Mode - Certificate Management
+
+#### Who Does What?
+
+**Three components work together**:
+
+1. **Istiod (Control Plane)**
+   - Acts as Certificate Authority (CA)
+   - Issues and signs certificates
+   - Like a government issuing passports
+
+2. **Istio Agent (pilot-agent)**
+   - Runs alongside Envoy proxy in each pod
+   - Requests certificates from istiod
+   - Handles rotation automatically
+   - Like your assistant getting passport renewed
+
+3. **Envoy Proxy**
+   - Uses certificates for mTLS
+   - Handles secure communication
+   - Like using passport to travel
+
+---
+
+#### How Certificate Issuance Works (Sidecar)
+
+![Istio Certificate](/static/img/istio/istio-certificate.png)
+
+**Step-by-step flow**:
+
+```
+1. Workload starts
+   ↓
+2. Envoy proxy asks Istio Agent for certificate
+   ↓
+3. Istio Agent creates CSR (Certificate Signing Request)
+   ↓
+4. Istio Agent sends CSR + Service Account JWT to istiod
+   ↓
+5. Istiod verifies service account (authentication)
+   ↓
+6. Istiod signs and issues certificate
+   ↓
+7. Istio Agent caches certificate
+   ↓
+8. Istio Agent delivers certificate to Envoy via SDS
+   ↓
+9. Envoy uses certificate for mTLS communication
+```
+
+**SDS** = Secret Discovery Service (secure way to deliver certificates)
+
+---
+
+#### Certificate Rotation (Sidecar)
+
+**Automatic renewal**:
+- Istio Agent monitors certificate expiration
+- Before expiration → Requests new certificate
+- Seamless rotation (no downtime)
+- Continuous security maintained
+
+**Like**: Passport renewal before it expires
+
+---
+
+### Ambient Mode - Certificate Management
+
+#### Key Difference
+
+**No individual sidecars** = Workloads don't run Envoy proxy
+
+**ztunnel handles everything** = Shared L4 proxy per node manages certificates
+
+---
+
+#### Who Does What?
+
+**Three components**:
+
+1. **ztunnel (per node)**
+   - Shared Layer 4 proxy
+   - Handles mTLS for all workloads on node
+   - Manages certificates
+   - Validates identities
+
+2. **Istiod (Control Plane)**
+   - Issues and signs certificates
+   - Same as sidecar mode
+
+3. **cert-manager (Optional)**
+   - External CA integration
+   - For custom certificate authorities
+
+---
+
+#### How Certificate Issuance Works (Ambient)
+
+![Istio Certificate](/static/img/istio/istio-certificate-ambient.png)
+
+**Step-by-step flow**:
+
+```
+1. Workload starts
+   ↓
+2. Workload communicates through ztunnel
+   ↓
+3. ztunnel requests certificate from istiod (on behalf of workload)
+   ↓
+4. Istiod verifies SPIFFE identity
+   ↓
+5. Istiod issues X.509 certificate
+   ↓
+6. ztunnel caches certificate
+   ↓
+7. ztunnel uses certificate for mTLS communication
+```
+
+**Key point**: ztunnel acts as security boundary for workloads
+
+---
+
+#### Certificate Rotation (Ambient)
+
+**Automatic renewal**:
+- ztunnel monitors certificate expiration
+- Before expiration → Requests new certificate from istiod
+- Seamless rotation
+- All workloads on node secured
+
+**Benefit**: Lower resource overhead (one ztunnel per node, not per pod)
+
+---
+
+### Sidecar vs Ambient Comparison
+
+| Feature | Sidecar Mode | Ambient Mode |
+|---------|--------------|---------------|
+| **Certificate Issuance** | Istiod → Workload certificate | Istiod → ztunnel certificate |
+| **mTLS Handling** | Envoy per workload | ztunnel per node |
+| **Certificate Rotation** | Istio Agent via SDS | ztunnel directly from istiod |
+| **Resource Overhead** | Higher (proxy per pod) | Lower (shared proxy per node) |
+| **Identity Management** | SPIFFE per workload | SPIFFE handled by ztunnel |
+| **Components** | Istiod + Istio Agent + Envoy | Istiod + ztunnel |
+
+---
+
+### Key Concepts Summary
+
+| Concept | What It Is | Example |
+|---------|-----------|----------|
+| **X.509 Certificate** | Digital identity document | Digital passport |
+| **Certificate Authority (CA)** | Issues certificates | Government issuing passports |
+| **CSR** | Certificate Signing Request | Passport application |
+| **SDS** | Secret Discovery Service | Secure delivery method |
+| **Rotation** | Replacing old certificate | Passport renewal |
+| **Service Account JWT** | Proof of identity | ID card for verification |
+
+---
+
+### Certificate Lifecycle Timeline
+
+**Typical flow**:
+
+```
+Day 1: Certificate issued (valid for 24 hours by default)
+   ↓
+Day 1 (12 hours): Istio starts monitoring expiration
+   ↓
+Day 1 (18 hours): Automatic renewal triggered
+   ↓
+Day 1 (18+ hours): New certificate issued
+   ↓
+Day 1 (19 hours): Old certificate replaced
+   ↓
+Day 2: New certificate active, cycle repeats
+```
+
+**Default validity**: 24 hours (configurable)
+
+**Renewal trigger**: Before expiration (typically at 50% of lifetime)
+
+---
+
+### Why Automatic Certificate Management Matters
+
+**Without automation**:
+- Manual certificate creation
+- Manual renewal before expiration
+- Risk of expired certificates (service outages)
+- Complex management at scale
+
+**With Istio automation**:
+- Zero manual work
+- No expired certificates
+- Continuous security
+- Scales to thousands of services
+
+**Like**: Automatic passport renewal vs manual renewal every time
+
+---
+
+### Important Points
+
+**Both modes use**:
+- SPIFFE identities (standard format)
+- X.509 certificates (industry standard)
+- Automatic rotation (no manual work)
+
+**Key difference**:
+- **Sidecar**: Each workload manages own certificate
+- **Ambient**: ztunnel manages certificates for all workloads on node
+
+**Result**: Secure communication without manual certificate management
+
+---
+
+:::tip Key Takeaway
+**Certificate management** = Automatic creation, renewal, and rotation of digital identity documents
+
+**X.509 Certificate** = Digital passport for services
+
+**Sidecar mode**:
+- Istio Agent requests certificates
+- Envoy proxy uses certificates
+- Per-workload management
+
+**Ambient mode**:
+- ztunnel requests and uses certificates
+- Per-node management (lower overhead)
+
+**Automatic rotation** = Certificates renewed before expiration (no downtime)
+
+**Components**:
+- **Istiod** = Certificate Authority (issues certificates)
+- **Istio Agent** = Certificate manager (sidecar mode)
+- **ztunnel** = Certificate manager (ambient mode)
+- **SDS** = Secure delivery method
+
+**Default validity** = 24 hours (auto-renewed)
+
+**Use for**: Secure mTLS communication, zero-trust networking, automatic security
+:::
+
+---
+
+## Peer and Request Authentication
+
+### Two Types of Authentication
+
+**Istio provides 2 authentication types**:
+
+1. **Peer Authentication** = Service-to-service (machine-to-machine)
+2. **Request Authentication** = End-user authentication (user-to-service)
+
+**Both work in**: Sidecar mode AND Ambient mode
+
+
+---
+
+### Peer Authentication (Service-to-Service)
+
+#### What is Peer Authentication?
+
+**Peer Authentication** = Verifies identity of services talking to each other
+
+**Purpose**: Ensures both client and server are who they claim to be
+
+**How**: Uses mTLS (mutual TLS) with SPIFFE identities
+
+**Like**: Two people showing IDs to each other before talking
+
+---
+
+#### mTLS Modes
+
+**Three modes available**:
+
+| Mode | What It Does | Use Case |
+|------|--------------|----------|
+| **STRICT** | Only mTLS allowed (no plain text) | Production (most secure) |
+| **PERMISSIVE** | Both mTLS and plain text allowed | Migration period |
+| **DISABLE** | No mTLS (plain text only) | Testing only |
+
+---
+
+#### STRICT Mode (Production)
+
+**Configuration**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT
+```
+
+**What this does**:
+- All communication MUST use mTLS
+- Plain text traffic rejected
+- Maximum security
+- Use in production
+
+**Result**: Services without valid certificates can't communicate
+
+---
+
+#### PERMISSIVE Mode (Migration)
+
+**Configuration**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: PERMISSIVE
+```
+
+**What this does**:
+- Accepts BOTH mTLS and plain text
+- Gradual migration to mTLS
+- No service disruption
+- Temporary mode
+
+**Use when**: Migrating services to mTLS gradually
+
+**Like**: Accepting both old and new passports during transition period
+
+---
+
+### Request Authentication (End-User)
+
+#### What is Request Authentication?
+
+**Request Authentication** = Validates end-user credentials (not service identity)
+
+**Purpose**: Verify actual users accessing services
+
+**How**: Uses JWT (JSON Web Tokens) from identity providers
+
+**Like**: Checking user login credentials
+
+---
+
+#### How It Works
+
+**Flow**:
+```
+1. User logs in to identity provider (Google, Auth0, etc.)
+   ↓
+2. Identity provider issues JWT token
+   ↓
+3. User sends request with JWT in header
+   ↓
+4. Istio validates JWT
+   ↓
+5. If valid → Request allowed
+6. If invalid → Request rejected
+```
+
+---
+
+#### JWT Configuration
+
+**Configuration example**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: default
+spec:
+  jwtRules:
+  - issuer: "https://auth.example.com"
+    jwksUri: "https://auth.example.com/.well-known/jwks.json"
+```
+
+**Configuration breakdown**:
+- **issuer**: Who issued the JWT (identity provider URL)
+- **jwksUri**: Where to get public keys to verify JWT
+
+**What this does**: Only requests with valid JWT from auth.example.com are allowed
+
+---
+
+#### Common Identity Providers
+
+**Popular providers**:
+- Okta, Auth0, Google, Firebase, Keycloak, ORY Hydra, Azure AD
+
+**All work the same way**: Issue JWT tokens that Istio validates
+
+---
+
+### Peer vs Request Authentication
+
+| | Peer Authentication | Request Authentication |
+|---|---------------------|------------------------|
+| **Authenticates** | Services (machines) | End users (people) |
+| **Uses** | mTLS + SPIFFE | JWT tokens |
+| **Resource** | PeerAuthentication | RequestAuthentication |
+| **Layer** | Transport (L4) | Application (L7) |
+| **Example** | Service A → Service B | User → Service |
+| **Like** | Machine showing certificate | User showing login |
+
+---
+
+### How It Works in Different Modes
+
+#### Sidecar Mode
+
+**Peer Authentication**:
+- Envoy proxy handles mTLS
+- Per-workload enforcement
+- Each pod validates certificates
+
+**Request Authentication**:
+- Envoy proxy validates JWT
+- Per-workload JWT checking
+- HTTP-level validation
+
+**Who does it**: Envoy sidecar proxy
+
+---
+
+#### Ambient Mode
+
+**Peer Authentication**:
+- ztunnel handles mTLS
+- Node-level enforcement
+- L4 (transport layer) validation
+
+**Request Authentication**:
+- Waypoint proxy validates JWT
+- Namespace or service level
+- L7 (application layer) validation
+- **Requires waypoint proxy** for JWT validation
+
+**Who does it**: ztunnel (L4) + waypoint proxy (L7)
+
+---
+
+### Mode Comparison
+
+| Feature | Sidecar Mode | Ambient Mode |
+|---------|--------------|---------------|
+| **Peer Auth (mTLS)** | Envoy per pod | ztunnel per node |
+| **Request Auth (JWT)** | Envoy per pod | Waypoint proxy |
+| **L4 Security** | Sidecar | ztunnel |
+| **L7 Security** | Sidecar | Waypoint proxy (required) |
+
+---
+
+### Scope of Policies
+
+**Three scope levels**:
+
+1. **Mesh-wide** (istio-system namespace)
+   - Applies to entire mesh
+   - Default for all services
+
+2. **Namespace-level**
+   - Applies to all services in namespace
+   - Overrides mesh-wide
+
+3. **Workload-specific**
+   - Applies to specific service
+   - Most specific (highest priority)
+
+**Priority**: Workload > Namespace > Mesh-wide
+
+---
+
+### Common Patterns
+
+#### Pattern 1: Mesh-wide STRICT mTLS
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system  # Mesh-wide
+spec:
+  mtls:
+    mode: STRICT
+```
+
+**Use case**: Enforce mTLS for entire mesh
+
+---
+
+#### Pattern 2: Namespace-level JWT
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: production  # Namespace-level
+spec:
+  jwtRules:
+  - issuer: "https://auth.example.com"
+    jwksUri: "https://auth.example.com/.well-known/jwks.json"
+```
+
+**Use case**: Require JWT for all services in production namespace
+
+---
+
+#### Pattern 3: Gradual mTLS Migration
+
+**Step 1**: Start with PERMISSIVE
+```yaml
+spec:
+  mtls:
+    mode: PERMISSIVE
+```
+
+**Step 2**: Monitor traffic (check if all services support mTLS)
+
+**Step 3**: Switch to STRICT
+```yaml
+spec:
+  mtls:
+    mode: STRICT
+```
+
+**Safe migration**: No service disruption
+
+---
+
+### Key Concepts Summary
+
+| Concept | What It Is | Example |
+|---------|-----------|----------|
+| **Peer Authentication** | Service-to-service auth | Service A ↔ Service B |
+| **Request Authentication** | End-user auth | User → Service |
+| **mTLS** | Mutual TLS encryption | Both sides show certificates |
+| **JWT** | JSON Web Token | User login token |
+| **STRICT mode** | Only mTLS allowed | Production security |
+| **PERMISSIVE mode** | Both mTLS and plain text | Migration period |
+| **Issuer** | Who issued JWT | Google, Auth0, etc. |
+| **jwksUri** | Public key location | Verify JWT signature |
+
+---
+
+### Important Notes
+
+**Peer Authentication**:
+- Automatic with Istio (no app code changes)
+- Uses certificates managed by Istio
+- Works at transport layer (L4)
+
+**Request Authentication**:
+- Requires external identity provider
+- App must send JWT in request
+- Works at application layer (L7)
+
+**Ambient mode JWT**:
+- Requires waypoint proxy
+- ztunnel only handles L4 (mTLS)
+- Waypoint handles L7 (JWT)
+
+---
+
+### When to Use What?
+
+**Use Peer Authentication when**:
+- Securing service-to-service communication
+- Zero-trust networking
+- Internal mesh security
+
+**Use Request Authentication when**:
+- Validating end users
+- External API access
+- User-facing services
+
+**Use both when**:
+- Need both service and user authentication
+- Maximum security required
+- Production environments
+
+---
+
+:::tip Key Takeaway
+**Two authentication types**:
+1. **Peer Authentication** = Service-to-service (mTLS)
+2. **Request Authentication** = End-user (JWT)
+
+**Peer Authentication**:
+- Uses mTLS with SPIFFE identities
+- Three modes: STRICT (production), PERMISSIVE (migration), DISABLE (testing)
+- Resource: PeerAuthentication
+
+**Request Authentication**:
+- Uses JWT tokens from identity providers
+- Validates end-user credentials
+- Resource: RequestAuthentication
+
+**Sidecar mode**: Envoy handles both
+
+**Ambient mode**: ztunnel (mTLS) + waypoint proxy (JWT)
+
+**Scope levels**: Mesh-wide > Namespace > Workload
+
+**Use for**: Secure service communication (peer) + user validation (request)
+:::
+
+---
+
+## Mutual TLS (mTLS)
+
+### What is mTLS?
+
+**Mutual TLS (mTLS)** = Both client and server show certificates to each other
+
+**Purpose**: Secure communication between services
+
+**Like**: Two people showing IDs to each other (not just one)
+
+**Works in**: Both Sidecar mode AND Ambient mode
+
+---
+
+### How mTLS Works
+
+#### Step-by-Step Process
+
+```
+1. Service A wants to talk to Service B
+   ↓
+2. Traffic goes through proxy (Envoy or ztunnel)
+   ↓
+3. Client proxy starts mTLS handshake with server proxy
+   ↓
+4. Both proxies present X.509 certificates
+   ↓
+5. Both verify SPIFFE identities in certificates
+   ↓
+6. Client checks if server's service account is authorized
+   ↓
+7. Encrypted communication channel established
+   ↓
+8. Request forwarded to destination
+```
+
+**Key point**: Both sides authenticate each other (mutual)
+
+---
+
+### mTLS in Different Modes
+
+#### Sidecar Mode
+
+**Who handles it**: Envoy proxy (sidecar next to each workload)
+
+**How**:
+- Each workload has own Envoy proxy
+- Proxy handles mTLS encryption
+- Proxy handles authentication
+- Per-workload level security
+
+**Like**: Each person has own security guard
+
+
+#### Ambient Mode
+
+**Who handles it**: ztunnel (shared L4 proxy per node)
+
+**How**:
+- ztunnel transparently encrypts traffic
+- ztunnel authenticates traffic
+- Node-level security
+- No sidecar needed
+
+**Like**: Shared security checkpoint for everyone on same floor
+
+---
+
+### mTLS Modes
+
+**Three modes available**:
+
+| Mode | What It Does | When to Use |
+|------|--------------|-------------|
+| **STRICT** | Only mTLS (no plain text) | Production |
+| **PERMISSIVE** | Both mTLS and plain text | Migration |
+| **DISABLE** | No mTLS (plain text only) | Testing |
+
+---
+
+### Configuring mTLS with PeerAuthentication
+
+#### STRICT Mode (Production)
+
+**Configuration**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT
+```
+
+**What this does**:
+- All communication MUST use mTLS
+- Plain text rejected
+- Maximum security
+
+**Scope**: All services in `default` namespace
+
+---
+
+#### PERMISSIVE Mode (Migration)
+
+**Configuration**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: PERMISSIVE
+```
+
+**What this does**:
+- Accepts both mTLS and plain text
+- Services with mTLS → Use mTLS
+- Services without mTLS → Use plain text
+- Gradual migration
+
+**Use when**: Migrating services to mTLS one by one
+
+---
+
+### Global mTLS (Entire Mesh)
+
+**Configuration**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: global-mtls
+  namespace: istio-system  # Important: istio-system for mesh-wide
+spec:
+  mtls:
+    mode: STRICT
+```
+
+**What this does**:
+- Enforces mTLS for ENTIRE mesh
+- All namespaces affected
+- All services must use mTLS
+
+**Scope**: Mesh-wide (all namespaces)
+
+---
+
+### Configuring mTLS with DestinationRule
+
+**Purpose**: Control TLS for outgoing traffic to specific service
+
+**Configuration**:
+```yaml
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: example-destination
+  namespace: default
+spec:
+  host: example-service.default.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+```
+
+**What this does**: Use Istio-managed mTLS when calling example-service
+
+---
+
+### TLS Modes in DestinationRule
+
+**Four modes available**:
+
+| Mode | What It Does | Use Case |
+|------|--------------|----------|
+| **DISABLE** | No TLS (plain text) | Testing only |
+| **SIMPLE** | TLS without client auth | One-way TLS |
+| **MUTUAL** | mTLS with manual certs | Custom certificates |
+| **ISTIO_MUTUAL** | mTLS with Istio certs | Recommended (automatic) |
+
+**Recommended**: Use `ISTIO_MUTUAL` (Istio manages certificates automatically)
+
+---
+
+### PeerAuthentication vs DestinationRule
+
+| | PeerAuthentication | DestinationRule |
+|---|-------------------|------------------|
+| **Controls** | Incoming traffic (server side) | Outgoing traffic (client side) |
+| **Enforces** | What server accepts | What client sends |
+| **Scope** | Mesh/Namespace/Workload | Specific service |
+| **Example** | "I only accept mTLS" | "I will use mTLS when calling you" |
+
+**Both needed**: PeerAuthentication (server) + DestinationRule (client) for complete mTLS
+
+
+![PeerAuthentication vs DestinationRule](/static/img/istio/istio-peer-dest.png)
+---
+
+### Scope Levels
+
+**Three scope levels**:
+
+1. **Mesh-wide** (istio-system namespace)
+   ```yaml
+   namespace: istio-system
+   ```
+   - Applies to entire mesh
+   - All namespaces
+
+2. **Namespace-level** (specific namespace)
+   ```yaml
+   namespace: production
+   ```
+   - Applies to all services in namespace
+   - Overrides mesh-wide
+
+3. **Workload-specific** (with selector)
+   ```yaml
+   selector:
+     matchLabels:
+       app: frontend
+   ```
+   - Applies to specific service
+   - Highest priority
+
+**Priority**: Workload > Namespace > Mesh-wide
+
+---
+
+### Migration Strategy
+
+**Safe migration to STRICT mTLS**:
+
+**Step 1**: Start with PERMISSIVE
+```yaml
+spec:
+  mtls:
+    mode: PERMISSIVE
+```
+
+**Step 2**: Monitor traffic
+- Check which services use mTLS
+- Check which services use plain text
+- Identify services that need updates
+
+**Step 3**: Update services gradually
+- Ensure all services support mTLS
+- Test each service
+
+**Step 4**: Switch to STRICT
+```yaml
+spec:
+  mtls:
+    mode: STRICT
+```
+
+**Step 5**: Verify
+- All traffic encrypted
+- No plain text connections
+
+**Result**: Zero-downtime migration
+
+---
+
+### Common Patterns
+
+#### Pattern 1: Mesh-wide STRICT mTLS
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: global-mtls
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+```
+
+**Use case**: Production mesh with maximum security
+
+---
+
+#### Pattern 2: Namespace PERMISSIVE for Migration
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: staging
+spec:
+  mtls:
+    mode: PERMISSIVE
+```
+
+**Use case**: Staging environment during migration
+
+---
+
+#### Pattern 3: Workload-specific STRICT
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: frontend-mtls
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  mtls:
+    mode: STRICT
+```
+
+**Use case**: Enforce mTLS for specific critical service
+
+---
+
+### Key Concepts Summary
+
+| Concept | What It Is | Example |
+|---------|-----------|----------|
+| **mTLS** | Both sides show certificates | Mutual authentication |
+| **STRICT** | Only mTLS allowed | Production mode |
+| **PERMISSIVE** | Both mTLS and plain text | Migration mode |
+| **DISABLE** | No mTLS | Testing only |
+| **ISTIO_MUTUAL** | Istio-managed mTLS | Recommended |
+| **PeerAuthentication** | Server-side policy | What I accept |
+| **DestinationRule** | Client-side policy | What I send |
+
+---
+
+### How It Works in Practice
+
+**Example scenario**:
+
+**Setup**:
+- Service A wants to call Service B
+- Both in mesh with STRICT mTLS
+
+**What happens**:
+```
+1. Service A makes request to Service B
+   ↓
+2. Request intercepted by proxy (Envoy/ztunnel)
+   ↓
+3. Proxy A initiates mTLS handshake with Proxy B
+   ↓
+4. Proxy A presents certificate (proves identity)
+   ↓
+5. Proxy B presents certificate (proves identity)
+   ↓
+6. Both verify certificates (SPIFFE identities)
+   ↓
+7. Encrypted channel established
+   ↓
+8. Request forwarded to Service B
+   ↓
+9. Response encrypted and sent back
+```
+
+**Result**: Secure, encrypted communication
+
+---
+
+### Important Notes
+
+**Automatic with Istio**:
+- No app code changes needed
+- Certificates managed automatically
+- Rotation handled automatically
+
+**Both modes supported**:
+- Sidecar: Envoy handles mTLS
+- Ambient: ztunnel handles mTLS
+
+**Same policies**:
+- PeerAuthentication works in both modes
+- DestinationRule works in both modes
+
+---
+
+### Troubleshooting
+
+**Problem**: Services can't communicate after enabling STRICT
+
+**Possible causes**:
+1. Service doesn't have sidecar injected (sidecar mode)
+2. Namespace not labeled for ambient (ambient mode)
+3. Certificate issues
+4. Conflicting policies
+
+**Solution**: Check pod status, labels, and policies
+
+---
+
+### Best Practices
+
+**Production**:
+- Use STRICT mode
+- Apply mesh-wide policy
+- Monitor certificate expiration
+
+**Migration**:
+- Start with PERMISSIVE
+- Migrate gradually
+- Test thoroughly
+- Switch to STRICT when ready
+
+**Configuration**:
+- Use ISTIO_MUTUAL in DestinationRule
+- Let Istio manage certificates
+- Don't use DISABLE in production
+
+---
+
+:::tip Key Takeaway
+**mTLS** = Mutual TLS where both client and server authenticate each other
+
+**Three modes**:
+- **STRICT** = Only mTLS (production)
+- **PERMISSIVE** = Both mTLS and plain text (migration)
+- **DISABLE** = No mTLS (testing)
+
+**Two resources**:
+- **PeerAuthentication** = Server-side (what I accept)
+- **DestinationRule** = Client-side (what I send)
+
+**Scope levels**: Mesh-wide > Namespace > Workload
+
+**Works in both modes**:
+- **Sidecar**: Envoy handles mTLS per workload
+- **Ambient**: ztunnel handles mTLS per node
+
+**Automatic**: Istio manages certificates, rotation, and encryption
+
+**Migration**: PERMISSIVE → Monitor → STRICT (zero downtime)
+
+**Recommended**: Use ISTIO_MUTUAL mode (Istio-managed certificates)
+
+**Use for**: Secure service-to-service communication, zero-trust networking
+:::
+
+---
+
+## Lab: Enable mTLS
+
+### What This Lab Does
+
+**Goal**: See how mTLS works in practice
+
+**Setup**:
+- Deploy web-frontend WITHOUT sidecar (plain text)
+- Deploy customers service WITH sidecar (mTLS capable)
+- Test PERMISSIVE mode (both work)
+- Test STRICT mode (plain text fails)
+
+![istio mTLS](/static/img/istio/istio-mtls-1.png)
+
+---
+
+### Lab Steps
+
+#### Step 1: Deploy Gateway
+
+```bash
+kubectl apply -f gateway.yaml
+```
+
+#### Step 2: Disable Auto-Injection
+
+```bash
+kubectl label namespace default istio-injection-
+```
+
+**Why**: We want web-frontend WITHOUT sidecar
+
+#### Step 3: Deploy Web Frontend (No Sidecar)
+
+```bash
+kubectl apply -f web-frontend.yaml
+kubectl get pods  # Shows 1/1 READY
+```
+
+#### Step 4: Enable Auto-Injection
+
+```bash
+kubectl label namespace default istio-injection=enabled
+```
+
+#### Step 5: Deploy Customers Service (With Sidecar)
+
+```bash
+kubectl apply -f customers-v1.yaml
+kubectl get pods  # Shows customers 2/2, web-frontend 1/1
+```
+
+#### Step 6: Test PERMISSIVE Mode
+
+```bash
+curl http://$GATEWAY_URL  # Works!
+```
+
+**Why works**: PERMISSIVE allows plain text
+
+#### Step 7: Check Kiali
+
+```bash
+istioctl dashboard kiali
+```
+
+**Enable Security view**: Display → Check "Security"
+
+**See**:
+- 🔒 Padlock: Ingress → Customers (mTLS)
+- ❌ No padlock: Ingress → Web-frontend (plain text)
+
+#### Step 8: Enable STRICT mTLS
+
+```bash
+kubectl apply -f strict-mtls.yaml
+```
+![istio mTLS](/static/img/istio/istio-mtls-2.png)
+
+**Result**: Web-frontend → Customers FAILS (ECONNRESET)
+
+**Why**: Web-frontend has no sidecar, can't do mTLS
+
+#### Step 9: Revert
+
+```bash
+kubectl delete peerauthentication default
+```
+
+---
+
+### Ambient Mode Version
+
+```bash
+# Enable ambient
+kubectl label namespace default istio.io/dataplane-mode=ambient
+
+# Deploy services (no sidecars)
+kubectl apply -f web-frontend.yaml
+kubectl apply -f customers-v1.yaml
+
+# Enable STRICT
+kubectl apply -f strict-mtls.yaml
+
+# Test - Works! ztunnel handles mTLS
+curl http://$GATEWAY_URL
+```
+
+---
+
+### What You Learned
+
+**PERMISSIVE**: Both mTLS and plain text work
+
+**STRICT**: Only mTLS works, plain text fails
+
+**Sidecar mode**: Need sidecar for mTLS (2/2 READY)
+
+**Ambient mode**: ztunnel handles mTLS automatically (1/1 READY)
+
+---
+
+:::tip Key Takeaway
+**PERMISSIVE** = Migration friendly (accepts both)
+
+**STRICT** = Production secure (only mTLS)
+
+**Without sidecar** = No mTLS (fails in STRICT)
+
+**Ambient mode** = mTLS without sidecars (ztunnel)
+
+**Kiali** = Visual mTLS status (padlock icon)
+:::
+
+---
+
+## Authorization
+
+### What is Authorization?
+
+**Authorization** decides if an authenticated user/service is allowed to do something - like checking if you have permission to enter a room after showing your ID.
+
+**Enforced using**: AuthorizationPolicy resource
+
+**Works in**: Both sidecar and ambient modes
+
+---
+
+### How Authorization Works by Mode
+
+#### Sidecar Mode
+
+**Proxy**: Envoy sidecar per pod
+
+**Enforcement**:
+- L4 (Layer 4): IP, port, service identity
+- L7 (Layer 7): HTTP methods, paths, headers
+
+**Example**: Can control GET vs POST, /api/users vs /admin
+
+---
+
+#### Ambient Mode
+
+**Two components**:
+
+| Component | Layer | What It Controls |
+|-----------|-------|------------------|
+| **ztunnel** | L4 | IP, port, service identity |
+| **waypoint proxy** | L7 | HTTP methods, paths, headers |
+
+**Important**: Without waypoint proxy, only L4 policies work!
+
+:::warning Waypoint Proxy Behavior
+**Issue**: Waypoint proxy acts as the caller when forwarding requests
+
+**Result**: Original caller identity may be hidden
+
+**Solution**: Attach policy to waypoint proxy to preserve source identity
+:::
+
+---
+
+### Three Parts of AuthorizationPolicy
+
+#### 1. Selector
+
+**What**: Which workloads this policy applies to
+
+**Example**:
+```yaml
+selector:
+  matchLabels:
+    app: customers
+```
+
+**Meaning**: Apply to all pods with label `app: customers`
+
+---
+
+#### 2. Action
+
+**What**: What to do with matching requests
+
+| Action | What It Does | Use Case |
+|--------|--------------|----------|
+| **ALLOW** | Let request through | Grant access |
+| **DENY** | Block request | Restrict access |
+| **AUDIT** | Log request (don't block) | Monitor activity |
+
+---
+
+#### 3. Rules
+
+**What**: Conditions that must match
+
+**Three types**:
+- **source**: Who is making the request
+- **operation**: What they want to do (GET, POST, path)
+- **conditions**: Extra checks (headers, IP address)
+
+---
+
+### Example: Allow GET Requests
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-customers-get
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: customers
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["default"]
+    to:
+    - operation:
+        methods: ["GET"]
+```
+
+**What this does**:
+- Applies to: `customers` service
+- Allows: GET requests
+- From: Services in `default` namespace
+- Blocks: Everything else (POST, DELETE, etc.)
+
+**Enforcement**:
+- **Sidecar mode**: Envoy proxy enforces at L7
+- **Ambient mode**: Waypoint proxy enforces at L7 (needs waypoint!)
+
+---
+
+### Policy Evaluation Order
+
+**Istio checks policies in this order**:
+
+```
+1. CUSTOM policies
+   ↓ (if any deny → request denied)
+2. DENY policies
+   ↓ (if any match → request denied)
+3. ALLOW policies
+   ↓ (if none exist → request allowed)
+   ↓ (if any match → request allowed)
+4. Default DENY
+   ↓ (no match → request denied)
+```
+
+**Key point**: DENY wins over ALLOW
+
+---
+
+### Policy Evaluation Examples
+
+#### Scenario 1: No Policies
+
+**Result**: Request ALLOWED (default allow)
+
+---
+
+#### Scenario 2: Only ALLOW Policy Exists
+
+**If matches**: Request ALLOWED
+
+**If doesn't match**: Request DENIED (default deny when ALLOW exists)
+
+---
+
+#### Scenario 3: DENY Policy Exists
+
+**If matches**: Request DENIED (DENY wins)
+
+**If doesn't match**: Check ALLOW policies
+
+---
+
+### Source Matching
+
+**Purpose**: Specify WHO can make requests
+
+#### Common Source Fields
+
+| Field | Example | Meaning |
+|-------|---------|----------|
+| **principals** | `["my-service-account"]` | Workload using this service account |
+| **notPrincipals** | `["my-service-account"]` | Any workload EXCEPT this |
+| **requestPrincipals** | `["my-issuer/hello"]` | Workload with valid JWT token |
+| **notRequestPrincipals** | `["*"]` | Workload without JWT |
+| **namespaces** | `["default"]` | From `default` namespace |
+| **notNamespaces** | `["prod"]` | NOT from `prod` namespace |
+| **ipBlocks** | `["1.2.3.4", "9.8.7.6/15"]` | From specific IP or CIDR |
+| **notIpBlocks** | `["1.2.3.4/24"]` | NOT from this CIDR block |
+
+---
+
+### Source Examples
+
+#### Example 1: Allow from Namespace
+
+```yaml
+rules:
+- from:
+  - source:
+      namespaces: ["default"]
+```
+
+**Meaning**: Only allow requests from `default` namespace
+
+---
+
+#### Example 2: Block from Namespace
+
+```yaml
+rules:
+- from:
+  - source:
+      notNamespaces: ["prod"]
+```
+
+**Meaning**: Block requests from `prod` namespace
+
+---
+
+#### Example 3: Allow Specific Service Account
+
+```yaml
+rules:
+- from:
+  - source:
+      principals: ["cluster.local/ns/default/sa/web-frontend"]
+```
+
+**Meaning**: Only allow requests from `web-frontend` service account
+
+---
+
+#### Example 4: Allow from IP Range
+
+```yaml
+rules:
+- from:
+  - source:
+      ipBlocks: ["10.0.0.0/16"]
+```
+
+**Meaning**: Only allow requests from IPs in 10.0.0.0/16 range
+
+---
+
+### Operations
+
+**Purpose**: Specify WHAT action is being requested
+
+**Defined under**: `to` field
+
+**Multiple operations**: Use AND logic (all must match)
+
+#### Operation Fields
+
+| Field | Negative Match | Example |
+|-------|----------------|----------|
+| **hosts** | `notHosts` | `["example.com"]` |
+| **ports** | `notPorts` | `["8080"]` |
+| **methods** | `notMethods` | `["GET", "POST"]` |
+| **paths** | `notPaths` | `["/api/*", "/admin"]` |
+
+---
+
+### Operation Examples
+
+#### Example 1: Allow GET on Specific Path
+
+```yaml
+rules:
+- to:
+  - operation:
+      methods: ["GET"]
+      paths: ["/api/users"]
+```
+
+**Meaning**: Only allow GET requests to `/api/users`
+
+---
+
+#### Example 2: Allow Specific Port
+
+```yaml
+rules:
+- to:
+  - operation:
+      ports: ["8080"]
+```
+
+**Meaning**: Only allow requests to port 8080
+
+---
+
+#### Example 3: Block Admin Path
+
+```yaml
+rules:
+- to:
+  - operation:
+      notPaths: ["/admin/*"]
+```
+
+**Meaning**: Block all requests to `/admin/*` paths
+
+---
+
+#### Example 4: Allow Multiple Paths
+
+```yaml
+rules:
+- to:
+  - operation:
+      methods: ["GET"]
+      paths: ["/api/*", "/health"]
+```
+
+**Meaning**: Allow GET to `/api/*` OR `/health`
+
+---
+
+### Conditions
+
+**Purpose**: Extra checks using Istio attributes
+
+**Defined under**: `when` field
+
+**Two parts**:
+1. **key**: Istio attribute name
+2. **values** or **notValues**: List of values to match
+
+#### Common Condition Keys
+
+| Key | What It Checks | Example |
+|-----|----------------|----------|
+| `request.headers` | HTTP headers | `["x-api-key"]` |
+| `source.ip` | Source IP address | `["10.0.1.1"]` |
+| `destination.port` | Destination port | `["8080"]` |
+| `request.auth.claims` | JWT claims | `["admin"]` |
+
+**Full list**: [Authorization Policy Conditions](https://istio.io/latest/docs/reference/config/security/conditions/)
+
+---
+
+### Condition Examples
+
+#### Example 1: Block Specific IP
+
+```yaml
+rules:
+- when:
+  - key: source.ip
+    notValues: ["10.0.1.1"]
+```
+
+**Meaning**: Block requests from IP 10.0.1.1
+
+---
+
+#### Example 2: Require Header
+
+```yaml
+rules:
+- when:
+  - key: request.headers[x-api-key]
+    values: ["secret-key-123"]
+```
+
+**Meaning**: Only allow if header `x-api-key: secret-key-123` present
+
+---
+
+#### Example 3: Check JWT Claim
+
+```yaml
+rules:
+- when:
+  - key: request.auth.claims[role]
+    values: ["admin"]
+```
+
+**Meaning**: Only allow if JWT has `role: admin` claim
+
+---
+
+### Complete Example: Complex Policy
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: complex-policy
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: customers
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["default"]
+        principals: ["cluster.local/ns/default/sa/web-frontend"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/api/customers/*"]
+    when:
+    - key: request.headers[x-api-version]
+      values: ["v1"]
+```
+
+**What this does**:
+- **Applies to**: `customers` service
+- **Allows**: Requests that match ALL of:
+  - From `default` namespace
+  - Using `web-frontend` service account
+  - GET method
+  - Path starts with `/api/customers/`
+  - Header `x-api-version: v1` present
+- **Blocks**: Everything else
+
+---
+
+**Flow**:
+```
+1. Authentication: Verify identity
+   ↓
+2. Authorization: Check permissions
+   ↓
+3. Allow or deny request
+```
+---
+
+### Common Patterns
+
+#### Pattern 1: Default Deny All
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: default
+spec: {}
+```
+
+**What this does**: Deny all requests (empty spec = no ALLOW rules)
+
+**Use case**: Start with deny-all, then add specific ALLOW policies
+
+---
+
+#### Pattern 2: Allow from Same Namespace
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: default
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["default"]
+```
+
+**Use case**: Services can only talk within same namespace
+
+---
+
+#### Pattern 3: Read-Only Access
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: read-only
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: customers
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        methods: ["GET", "HEAD"]
+```
+
+**Use case**: Allow only read operations (GET, HEAD)
+
+---
+
+#### Pattern 4: Block External Access
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: block-external
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: internal-service
+  action: DENY
+  rules:
+  - from:
+    - source:
+        notNamespaces: ["default", "production"]
+```
+
+**Use case**: Block access from outside specific namespaces
+
+---
+
+### Troubleshooting
+
+#### Problem: All Requests Denied
+
+**Possible causes**:
+1. ALLOW policy exists but doesn't match
+2. DENY policy matches
+3. Empty AuthorizationPolicy (deny-all)
+
+**Solution**: Check policy rules, add logging
+
+---
+
+#### Problem: Policy Not Working
+
+**Possible causes**:
+1. Wrong namespace
+2. Wrong selector
+3. L7 policy without waypoint (ambient mode)
+4. Policy not applied yet
+
+**Solution**: Verify namespace, selector, and waypoint deployment
+
+---
+
+#### Problem: Source Identity Lost (Ambient Mode)
+
+**Cause**: Waypoint proxy acts as caller
+
+**Solution**: Attach policy to waypoint proxy instead of destination
+
+---
+
+### Best Practices
+
+**Start with deny-all**:
+```yaml
+spec: {}  # Empty = deny all
+```
+Then add specific ALLOW policies
+
+**Use namespace isolation**:
+- Separate namespaces for different environments
+- Use namespace-based policies
+
+**Principle of least privilege**:
+- Only allow what's needed
+- Use specific paths and methods
+
+**Test in PERMISSIVE first**:
+- Use AUDIT action to test
+- Monitor logs before enforcing
+
+**Use service accounts**:
+- Better than IP-based policies
+- Works across network changes
+
+---
+
+### Key Concepts Summary
+
+| Concept | What It Is | Example |
+|---------|-----------|----------|
+| **Authorization** | Permission check | Can you access /api? |
+| **AuthorizationPolicy** | Policy resource | YAML config |
+| **Selector** | Which workloads | `app: customers` |
+| **Action** | What to do | ALLOW, DENY, AUDIT |
+| **Source** | Who makes request | Namespace, IP, service account |
+| **Operation** | What is requested | GET /api/users |
+| **Condition** | Extra checks | Header, JWT claim |
+| **L4** | Network layer | IP, port |
+| **L7** | Application layer | HTTP method, path |
+
+---
+
+### Mode Comparison
+
+| Feature | Sidecar Mode | Ambient Mode |
+|---------|--------------|---------------|
+| **L4 enforcement** | Envoy sidecar | ztunnel |
+| **L7 enforcement** | Envoy sidecar | waypoint proxy |
+| **Requires waypoint** | ❌ No | ✅ Yes (for L7) |
+| **Source identity** | Always preserved | May be hidden by waypoint |
+| **Policy location** | Per workload | Per namespace/service |
+
+---
+
+:::tip Key Takeaway
+**Authorization** = Permission check (what can you do?)
+
+**AuthorizationPolicy** = YAML config with 3 parts:
+1. **Selector** = Which workloads
+2. **Action** = ALLOW, DENY, or AUDIT
+3. **Rules** = Source + Operation + Conditions
+
+**Evaluation order**: CUSTOM → DENY → ALLOW → Default DENY
+
+**Source** = WHO (namespace, IP, service account)
+
+**Operation** = WHAT (method, path, port)
+
+**Condition** = EXTRA CHECKS (headers, JWT claims)
+
+**Scope levels**: Workload > Namespace > Mesh-wide
+
+**Sidecar mode**: Envoy enforces L4 + L7
+
+**Ambient mode**: ztunnel (L4) + waypoint (L7)
+
+**Important**: L7 policies need waypoint proxy in ambient mode!
+
+**Best practice**: Start with deny-all, add specific ALLOW policies
+
+**Use for**: Access control, security policies, zero-trust networking
+:::
+
+---
+
+## Lab 2: Access Control
+
+### What This Lab Does
+
+**Goal**: Use AuthorizationPolicy to control traffic between workloads
+
+**Two parts**:
+1. Sidecar mode
+2. Ambient mode
+
+---
+
+### Part 1: Sidecar Mode
+
+#### Step 1: Deploy Ingress Gateway
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - '*'
+```
+
+```bash
+kubectl apply -f gateway.yaml
+```
+
+---
+
+#### Step 2: Deploy Services
+
+**web-frontend.yaml**:
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web-frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-frontend
+  template:
+    metadata:
+      labels:
+        app: web-frontend
+    spec:
+      serviceAccountName: web-frontend
+      containers:
+      - image: gcr.io/tetratelabs/web-frontend:1.0.0
+        name: web
+        ports:
+        - containerPort: 8080
+        env:
+        - name: CUSTOMER_SERVICE_URL
+          value: 'http://customers.default.svc.cluster.local'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-frontend
+spec:
+  selector:
+    app: web-frontend
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: web-frontend
+spec:
+  hosts:
+  - '*'
+  gateways:
+  - gateway
+  http:
+  - route:
+    - destination:
+        host: web-frontend.default.svc.cluster.local
+        port:
+          number: 80
+```
+
+**customers-v1.yaml**:
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: customers-v1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customers-v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customers
+  template:
+    metadata:
+      labels:
+        app: customers
+    spec:
+      serviceAccountName: customers-v1
+      containers:
+      - image: gcr.io/tetratelabs/customers:1.0.0
+        name: svc
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customers
+spec:
+  selector:
+    app: customers
+  ports:
+  - port: 80
+    targetPort: 3000
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: customers
+spec:
+  hosts:
+  - 'customers.default.svc.cluster.local'
+  http:
+  - route:
+    - destination:
+        host: customers.default.svc.cluster.local
+        port:
+          number: 80
+```
+
+```bash
+kubectl apply -f web-frontend.yaml
+kubectl apply -f customers.yaml
+```
+
+---
+
+#### Step 3: Verify Access
+
+```bash
+minikube tunnel
+
+curl -v -H "Host: customers.default.svc.cluster.local" http://127.0.0.1
+```
+
+**Result**: Should see customers data
+
+---
+
+#### Step 4: Deny All Traffic
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: default
+spec: {}
+```
+
+```bash
+kubectl apply -f deny-all.yaml
+```
+
+**Result**:
+```bash
+curl -v -H "Host: customers.default.svc.cluster.local" http://127.0.0.1
+# RBAC: access denied
+
+kubectl run curl --image=curlimages/curl:latest --command -- /bin/sh -c "sleep infinity"
+kubectl exec -it curl -- curl customers
+# RBAC: access denied
+```
+
+---
+
+#### Step 5: Allow Specific Traffic
+
+**Allow Ingress Gateway → Web Frontend**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-frontend
+spec:
+  selector:
+    matchLabels:
+      app: web-frontend
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
+```
+
+**Allow Web Frontend → Customers**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-web-frontend-customers
+spec:
+  selector:
+    matchLabels:
+      app: customers
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/default/sa/web-frontend"
+```
+
+```bash
+kubectl apply -f allow-ingress-frontend.yaml
+kubectl apply -f allow-web-frontend-customers.yaml
+```
+
+**Final Result**:
+- Ingress Gateway → Web Frontend → Customers: ALLOWED
+- Other traffic: DENIED
+
+---
+
+#### Step 6: Cleanup (Sidecar)
+
+```bash
+kubectl delete authorizationpolicy --all
+kubectl delete gateway gateway
+kubectl delete virtualservice web-frontend customers
+kubectl delete deploy web-frontend customers-v1
+kubectl delete service web-frontend customers
+kubectl delete serviceaccount web-frontend customers-v1
+kubectl delete pod curl
+```
+
+---
+
+### Part 2: Ambient Mode
+
+#### Step 1: Install Ambient Mode
+
+```bash
+istioctl install --set profile=ambient --skip-confirmation
+kubectl label namespace default istio.io/dataplane-mode=ambient
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+```
+
+---
+
+#### Step 2: Deploy Services
+
+```bash
+kubectl apply -f web-frontend.yaml
+kubectl apply -f customers.yaml
+
+# Delete old VirtualService
+kubectl delete virtualservice web-frontend
+```
+
+**Why**: Use HTTPRoute instead in ambient mode
+
+---
+
+#### Step 3: Deploy Gateway and Waypoint
+
+**Gateway API**:
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ingress-gateway
+  namespace: default
+spec:
+  gatewayClassName: istio
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same
+```
+
+```bash
+kubectl apply -f gateway-api.yaml
+```
+
+**Waypoint Proxy**:
+```bash
+istioctl waypoint apply -n default
+```
+
+---
+
+#### Step 4: Create HTTPRoute
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: web-frontend
+  namespace: default
+spec:
+  parentRefs:
+  - name: ingress-gateway
+  hostnames:
+  - "customers.default.svc.cluster.local"
+  rules:
+  - backendRefs:
+    - name: web-frontend
+      port: 80
+```
+
+```bash
+kubectl apply -f httproute.yaml
+```
+
+---
+
+#### Step 5: Deny All Traffic
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: ambient
+spec: {}
+```
+
+```bash
+kubectl apply -f deny-all.yaml
+```
+
+**Result**:
+```
+curl: (56) Recv failure: Connection reset by peer
+```
+
+---
+
+#### Step 6: Allow Specific Traffic
+
+**Allow All → Ingress Gateway**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-gateway
+  namespace: default
+spec:
+  targetRefs:
+  - kind: Gateway
+    name: ingress-gateway
+  rules:
+  - {}
+```
+
+**Allow Ingress Gateway → Web Frontend**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-frontend
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: web-frontend
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/default/sa/ingress-gateway-istio"
+```
+
+**Allow Web Frontend + Waypoint → Customers**:
+```yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-web-frontend-customers
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: customers
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/default/sa/web-frontend"
+        - "cluster.local/ns/default/sa/waypoint"
+```
+
+```bash
+kubectl apply -f allow-ingress-gateway.yaml
+kubectl apply -f allow-ingress-frontend.yaml
+kubectl apply -f allow-web-frontend-customers.yaml
+```
+
+---
+
+#### Step 7: Verify Traffic Flow
+
+```bash
+minikube tunnel
+
+curl -H "Host: customers.default.svc.cluster.local" http://127.0.0.1
+```
+
+**Check**:
+- Users can access ingress gateway
+- Traffic flows through waypoint proxy
+- Policies enforced correctly
+
+---
+
+#### Step 8: Cleanup (Ambient)
+
+```bash
+kubectl delete authorizationpolicy --all -n default
+kubectl delete gateway ingress-gateway -n default
+kubectl delete httproute web-frontend
+kubectl delete waypoint
+kubectl delete deploy web-frontend customers-v1
+kubectl delete service web-frontend customers
+kubectl delete serviceaccount web-frontend customers-v1
+kubectl delete pod curl
+```
+
+---
+
+### Key Differences: Sidecar vs Ambient
+
+| | Sidecar Mode | Ambient Mode |
+|---|--------------|---------------|
+| **Gateway** | Istio Gateway | Gateway API |
+| **Routing** | VirtualService | HTTPRoute |
+| **Ingress SA** | `istio-ingressgateway-service-account` | `ingress-gateway-istio` |
+| **Waypoint** | Not needed | Must allow waypoint SA |
+| **Error message** | `RBAC: access denied` | `Connection reset by peer` |
+
+---
+
+:::tip Key Takeaway
+**Lab shows**: How to use AuthorizationPolicy for access control
+
+**Pattern**: Deny-all → Allow specific paths
+
+**Sidecar mode**: Use service account principals
+
+**Ambient mode**: Must allow waypoint proxy SA too
+
+**Traffic flow**:
+- Ingress Gateway → Web Frontend → Customers
+- Each hop needs explicit ALLOW policy
+:::
+
+---
+
+
+
