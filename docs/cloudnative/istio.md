@@ -1704,6 +1704,8 @@ helm install istio-egress istio/gateway \
 
 **Traffic Flow**:
 ```
+
+---
 External Client → Ingress Gateway (External IP) → VirtualService Rules → Internal Service
 ```
 
@@ -9315,6 +9317,2959 @@ kubectl delete pod curl
 **Traffic flow**:
 - Ingress Gateway → Web Frontend → Customers
 - Each hop needs explicit ALLOW policy
+:::
+
+---
+
+# Advanced Features
+
+## Multi-cluster Deployments
+
+### What is Multi-cluster?
+
+**Multi-cluster** = Two or more Kubernetes clusters working together
+
+**Benefits**:
+- Higher availability
+- Stronger isolation
+
+**Cost**: More complex setup and operations
+
+**Use case**: High availability (HA) across zones and regions
+
+---
+
+### Network Deployment Models
+
+#### Single Network
+
+**What**: All clusters in same network
+
+**Pods**: Can reach each other directly using Pod IPs
+
+---
+
+#### Multi-Network
+
+**What**: Clusters in different networks
+
+**Problem**: Pod IPs not routable across networks
+
+**Solution**: Use gateways for cross-network traffic (east-west)
+
+**Configure with** (Istio 1.17+):
+1. Traditional: `Gateway` + `VirtualService` + `DestinationRule`
+2. Modern: Kubernetes Gateway API (`Gateway` + `HTTPRoute`)
+
+**Benefits**:
+- Better fault tolerance
+- Handles overlapping IP ranges
+- Addresses IP exhaustion
+
+---
+
+### Control Plane Deployment Models
+
+#### 1. Single Control Plane
+
+**Setup**: One Istiod in primary cluster, other clusters are remote
+
+**How it works**: All clusters connect to single control plane
+
+**Pros**: Centralized operations
+
+**Cons**: If primary fails, affects all clusters
+
+---
+
+#### 2. External Control Plane
+
+**Setup**: Istiod runs outside your clusters (cloud-managed)
+
+**How it works**: External control plane configures multiple data-plane clusters
+
+**Pros**:
+- Fully separated control/data planes
+- Simplified upgrades
+- Managed certificate handling
+
+**Use case**: Cloud-managed Istio services
+
+---
+
+#### 3. Multiple Control Planes (Recommended)
+
+**Setup**: Separate Istiod in each cluster
+
+**How it works**: Each cluster has its own control plane
+
+**Pros**:
+- Higher availability
+- Regional independence
+- If one fails, only that cluster affected
+- Can implement failover
+
+**Best for**: Large-scale environments
+
+---
+
+### Control Plane Comparison
+
+| Model | Istiod Location | Availability | Complexity |
+|-------|----------------|--------------|------------|
+| **Single** | One primary cluster | Lower | Simple |
+| **External** | Outside clusters | Medium | Medium |
+| **Multiple** | Each cluster | Highest | Higher |
+
+:::warning Ambient Mode
+**Not supported** for multi-cluster yet. This section focuses on Sidecar mode.
+:::
+
+---
+
+### Mesh Deployment Models
+
+#### Single Mesh
+
+**What**: All services belong to one logical mesh
+
+**Scope**: Can span multiple clusters/networks
+
+**Use case**: Standard multi-cluster setup
+
+---
+
+#### Multi-Mesh
+
+**What**: Multiple distinct meshes federated together
+
+**How it works**:
+- Each mesh exposes certain services to other meshes
+- Requires trust relationships (shared CA)
+- Cross-mesh routing via policies and gateways
+
+**Use case**: Large organizations needing strict isolation between teams
+
+---
+
+### Tenancy Models
+
+#### What is a Tenant?
+
+**Tenant** = Group of users sharing common privileges to workloads
+
+---
+
+#### Soft Multi-Tenancy
+
+**Implementation**: Namespaces + authorization policies
+
+**Characteristics**:
+- Same control plane for all tenants
+- Shared compute resources
+- Namespaces with same name across clusters = single namespace
+
+**Traffic behavior**: Istio load balances across all matching endpoints in all clusters
+
+---
+
+#### Strong Isolation
+
+**Implementation**: Each cluster as its own mesh
+
+**Characteristics**:
+- Services in different meshes don't share namespaces
+- Cross-mesh communication explicitly controlled
+
+---
+
+### Best Multi-cluster Deployment
+
+#### Recommended Topology
+
+**Run Istiod in each cluster**
+
+**Benefits**:
+1. **High availability**: One cluster failure doesn't affect others
+2. **Configuration independence**: Upgrade clusters separately
+3. **Clear boundaries**: Localized troubleshooting
+
+---
+
+#### Cross-Cluster Traffic
+
+**Recommended**: Use ingress/east-west gateways
+
+**Why not direct Pod-to-Pod?**
+- Requires exchanging large amounts of endpoint data
+- Complicates network setup
+
+**Gateway benefits**:
+- Reduces complexity
+- More secure
+- Well-defined traffic paths
+
+---
+
+### Key Principles
+
+**Control plane**: One Istiod per cluster (most robust)
+
+**Cross-cluster traffic**: Use gateways, not direct Pod IPs
+
+**Multi-tenancy**: Use namespace policies or multiple meshes
+
+**Scale**: Each cluster well-defined for connectivity and control-plane boundaries
+
+---
+
+:::tip Key Takeaway
+**Multi-cluster** = 2+ clusters for high availability
+
+**Network models**:
+- Single network = Direct Pod communication
+- Multi-network = Use gateways
+
+**Control plane models**:
+- Single = One Istiod (simple, less HA)
+- External = Cloud-managed (simplified ops)
+- Multiple = One per cluster (best HA)
+
+**Mesh models**:
+- Single mesh = All services together
+- Multi-mesh = Federated meshes with isolation
+
+**Best practice**: Istiod per cluster + gateways for cross-cluster traffic
+
+**Ambient mode**: Not supported for multi-cluster yet
+:::
+
+---
+
+## VM Workloads
+
+### What is VM Workload?
+
+**VM workload** = Virtual machines running your applications
+
+**Can connect to Istio mesh** (Sidecar mode only)
+
+---
+
+### Two Resources for VMs
+
+#### 1. WorkloadGroup
+
+**What**: Template for VM instances (like Kubernetes Deployment)
+
+**Contains**:
+- Common metadata
+- Port definitions
+- Labels
+- Service account
+
+**Use**: Define once, applies to all VMs in group
+
+---
+
+#### 2. WorkloadEntry
+
+**What**: Single VM instance (like Kubernetes Pod)
+
+**Contains**:
+- VM IP address
+- Labels
+- Instance details
+
+**Creation**:
+- **Auto-registration**: Created automatically when VM joins
+- **Manual**: Create manually or use `istioctl x workload entry configure`
+
+---
+
+### Network Architectures
+
+#### Single-Network Architecture
+
+**Setup**: Kubernetes cluster and VMs in same L3 network
+
+**Connectivity**: VMs can reach Istiod and Pods directly by IP
+
+**Gateway**: Optional (can route through `istio-ingressgateway` but not required)
+
+**Auto-registration**: VM contacts Istiod on startup, creates WorkloadEntry automatically
+
+---
+
+#### Multi-Network Architecture
+
+**Setup**: VMs in different network than Kubernetes cluster
+
+**Problem**: Pods can't reach VM IPs directly
+
+**Solution**: Use east-west gateway to bridge networks
+
+**Traffic flow**: All traffic (control plane + data plane) goes through gateway
+
+**VM config**: Must know gateway address for secure connection to Istiod
+
+---
+
+### Architecture Comparison
+
+| | Single-Network | Multi-Network |
+|---|----------------|---------------|
+| **VM location** | Same network as K8s | Different network |
+| **Direct connectivity** | ✅ Yes | ❌ No |
+| **Gateway required** | Optional | Required |
+| **Traffic path** | Direct or via gateway | Through gateway |
+| **Use case** | Simple setup | Isolated networks |
+
+---
+
+### Representing VMs in Istio
+
+#### WorkloadGroup Resource
+
+**Purpose**: Template for VM group
+
+**Example**:
+```yaml
+apiVersion: networking.istio.io/v1
+kind: WorkloadGroup
+metadata:
+  name: customers-workload
+  namespace: vm-namespace
+spec:
+  metadata:
+    labels:
+      app: customers
+  template:
+    serviceAccount: customers
+    ports:
+      http: 8080
+```
+
+**What happens**: When VM starts, WorkloadEntry created automatically (if auto-registration enabled)
+
+---
+
+#### WorkloadEntry Resource
+
+**Purpose**: Represents single VM instance
+
+**Like**: Kubernetes Pod
+
+**Contains**: IP address, labels, metadata
+
+**Creation methods**:
+1. Auto-registration (VM joins, entry created)
+2. Manual creation
+3. Using istioctl command
+
+---
+
+#### Kubernetes Service (Optional)
+
+**When to use**: Want VMs to share same hostname as K8s service
+
+**Example**: `serviceName.namespace.svc.cluster.local`
+
+**How**: Create K8s Service with same labels as VMs
+
+**Result**: Load balance between VMs and Pods together
+
+**Alternative**: Use ServiceEntry + WorkloadEntry for inbound/outbound traffic
+
+---
+
+### Auto-Registration
+
+**What**: VM automatically registers with Istio on startup
+
+**How it works**:
+1. VM contacts Istiod (or gateway)
+2. Uses WorkloadGroup template
+3. WorkloadEntry created automatically
+4. VM joins mesh
+
+**Benefits**: No manual WorkloadEntry creation needed
+
+---
+
+### Multi-Network Setup
+
+**Requirements**:
+- VM knows gateway address
+- Gateway bridges networks
+- Bootstrap config includes gateway address
+
+**Traffic**:
+- Control plane: VM → Gateway → Istiod
+- Data plane: VM → Gateway → Pods
+- mTLS tunnels through gateway
+
+---
+
+### Key Concepts
+
+| Concept | Kubernetes Equivalent | Purpose |
+|---------|----------------------|----------|
+| **WorkloadGroup** | Deployment | Template for VMs |
+| **WorkloadEntry** | Pod | Single VM instance |
+| **Service** | Service | Load balancing |
+| **Auto-registration** | - | Automatic VM joining |
+
+---
+
+:::tip Key Takeaway
+**VM workloads** = Connect VMs to Istio mesh (Sidecar mode)
+
+**Two resources**:
+- **WorkloadGroup** = Template (like Deployment)
+- **WorkloadEntry** = Single VM (like Pod)
+
+**Network models**:
+- **Single-network** = Direct connectivity (gateway optional)
+- **Multi-network** = Gateway required (bridges networks)
+
+**Auto-registration** = VM joins automatically, WorkloadEntry created
+
+**Service** = Optional, for load balancing VMs with Pods
+
+**Multi-network** = VM needs gateway address in bootstrap config
+:::
+
+---
+
+## WebAssembly (Wasm)
+
+### What is WebAssembly?
+
+**WebAssembly (Wasm)** = Portable binary format for executable code
+
+**Key features**:
+- Open standard
+- Write code in any language (Go, Rust, etc.)
+- Compile to WebAssembly
+- Programming-language agnostic
+
+---
+
+### Why Wasm for Plugins?
+
+**Ideal for plugins because**:
+- Binary portability
+- Language agnostic
+- Memory-safe sandbox (virtual machine)
+- Isolated from host environment
+- Well-defined API for communication
+
+---
+
+### Proxy-Wasm
+
+**What**: Specification for extending proxies with WebAssembly
+
+**Target**: Envoy proxy (Istio's sidecar)
+
+**Purpose**: Standard API for proxy extensions
+
+---
+
+### Extension Options
+
+#### 1. Lua Filter
+
+**What**: Write custom Lua script in EnvoyFilter
+
+**Example**: Inject HTTP header into response
+
+**Use when**: Simple functionality needed
+
+**Type**: `type.googleapis.com/envoy.config.filter.http.lua.v2.Lua`
+
+---
+
+#### 2. Wasm Filter
+
+**What**: Write code in Go/Rust, compile to Wasm plugin
+
+**How it works**:
+1. Write custom functionality (Go, Rust, etc.)
+2. Compile to Wasm plugin
+3. Envoy loads it dynamically at runtime
+
+**Use when**: Complex functionality needed
+
+---
+
+### WasmPlugin Resource (Istio 1.12+)
+
+**What**: New resource to configure Wasm plugins
+
+**Benefits**:
+- Easier than EnvoyFilter
+- Download from OCI-compliant registry
+- Push like Docker images
+- Istio agent handles downloading
+
+---
+
+### WasmPlugin Example
+
+```yaml
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: hello-world-wasm
+  namespace: default
+spec:
+  selector:
+    labels:
+      app: hello-world
+  url: oci://my-registry/tetrate/hello-world:v1
+  pluginConfig:
+    greeting: hello
+    something: anything
+  vmConfig:
+  - name: TRUST_DOMAIN
+    value: "cluster.local"
+```
+
+---
+
+### Key Fields
+
+#### 1. selector
+
+**Purpose**: Choose which workloads get the plugin
+
+**Uses**: Labels to match workloads
+
+**Example**: `app: hello-world`
+
+---
+
+#### 2. url
+
+**Purpose**: Location of Wasm plugin
+
+**Valid schemes**:
+- `oci://` (default) - OCI registry
+- `file://` - Local file
+- `http[s]://` - HTTP URL
+
+**Optional settings**:
+- `imagePullPolicy` - When to pull image
+- `imagePullSecret` - Credentials for private registry
+
+---
+
+#### 3. pluginConfig
+
+**Purpose**: Configuration for the plugin
+
+**How it works**: Plugin code reads this config via Proxy-Wasm API call
+
+**Example**: Pass greeting message, settings, etc.
+
+---
+
+#### 4. vmConfig
+
+**Purpose**: Configure VM running the plugin
+
+**What it does**: Inject environment variables into VM
+
+**Example**: Set TRUST_DOMAIN for the plugin
+
+---
+
+### Other Settings
+
+#### priority
+
+**Purpose**: Order of WasmPlugins
+
+**Use**: When multiple plugins applied
+
+---
+
+#### phase
+
+**Purpose**: Where in filter chain to inject plugin
+
+**Use**: Control execution order in Envoy
+
+---
+
+### Workflow
+
+**Development**:
+```
+1. Write code (Go, Rust, etc.)
+   ↓
+2. Compile to Wasm
+   ↓
+3. Push to OCI registry (like Docker Hub)
+   ↓
+4. Create WasmPlugin resource
+   ↓
+5. Istio agent downloads plugin
+   ↓
+6. Envoy loads and runs plugin
+```
+
+---
+
+### Lua vs Wasm Comparison
+
+| | Lua Filter | Wasm Filter |
+|---|------------|-------------|
+| **Language** | Lua only | Any (Go, Rust, etc.) |
+| **Complexity** | Simple tasks | Complex functionality |
+| **Configuration** | EnvoyFilter | WasmPlugin |
+| **Distribution** | Inline script | OCI registry |
+| **Compilation** | Not needed | Required |
+| **Use case** | Quick scripts | Production plugins |
+
+---
+
+:::tip Key Takeaway
+**WebAssembly (Wasm)** = Portable binary format for extending Envoy
+
+**Why use it**:
+- Language agnostic (Go, Rust, etc.)
+- Memory-safe sandbox
+- Binary portability
+
+**Two options**:
+- **Lua filter** = Simple, inline scripts
+- **Wasm filter** = Complex, compiled plugins
+
+**WasmPlugin resource** (Istio 1.12+):
+- Easier than EnvoyFilter
+- Download from OCI registry
+- Like Docker images
+
+**Key fields**:
+- `selector` = Which workloads
+- `url` = Plugin location (oci://, file://, http://)
+- `pluginConfig` = Plugin settings
+- `vmConfig` = VM environment variables
+
+**Workflow**: Write code → Compile → Push to registry → Apply WasmPlugin
+:::
+
+---
+
+## Lab: Connecting VM to Istio
+
+### What This Lab Does
+
+**Goal**: Connect VM workload to Istio mesh running on Kubernetes
+
+**Setup**: Both K8s cluster and VM on Google Cloud Platform (GCP)
+
+---
+
+### Key Steps
+
+#### 1. Install Istio on K8s
+
+**Enable auto-registration**:
+```bash
+istioctl install -f istio-vm-install.yaml \
+  --set values.pilot.env.PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION=true \
+  --set values.pilot.env.PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS=true
+```
+
+**Deploy east-west gateway** (exposes control plane to VM):
+```bash
+samples/multicluster/gen-eastwest-gateway.sh --single-cluster | istioctl install -y -f -
+```
+
+**Expose control plane**:
+```bash
+kubectl apply -f samples/multicluster/expose-istiod.yaml
+```
+
+---
+
+#### 2. Prepare VM Files
+
+**Create namespace and service account**:
+```bash
+export VM_NAMESPACE="vm-namespace"
+export SERVICE_ACCOUNT="vm-sa"
+kubectl create ns "${VM_NAMESPACE}"
+kubectl create serviceaccount "${SERVICE_ACCOUNT}" -n "${VM_NAMESPACE}"
+```
+
+**Create WorkloadGroup**:
+```bash
+istioctl x workload group create --name "${VM_APP}" \
+  --namespace "${VM_NAMESPACE}" \
+  --labels app="${VM_APP}" \
+  --serviceAccount "${SERVICE_ACCOUNT}" > workloadgroup.yaml
+
+kubectl apply -f workloadgroup.yaml
+```
+
+**Generate VM config files**:
+```bash
+istioctl x workload entry configure -f workloadgroup.yaml \
+  -o "${WORK_DIR}" --autoregister --clusterID "Kubernetes"
+```
+
+**Files generated**:
+- `cluster.env` - Metadata (namespace, service account, network)
+- `istio-token` - Token for getting certs
+- `mesh.yaml` - Proxy config
+- `root-cert.pem` - Root certificate
+- `hosts` - Hosts file for reaching istiod
+
+---
+
+#### 3. Configure VM
+
+**Copy files to VM**:
+```bash
+gcloud compute scp vm-files/* my-mesh-vm:~ --zone=[ZONE]
+```
+
+**On VM, install and configure**:
+```bash
+# Copy root cert
+sudo mkdir -p /etc/certs
+sudo cp root-cert.pem /etc/certs/root-cert.pem
+
+# Copy token
+sudo mkdir -p /var/run/secrets/tokens
+sudo cp istio-token /var/run/secrets/tokens/istio-token
+
+# Install Istio sidecar
+curl -LO https://storage.googleapis.com/istio-release/releases/1.24.3/deb/istio-sidecar.deb
+sudo dpkg -i istio-sidecar.deb
+
+# Copy config files
+sudo cp cluster.env /var/lib/istio/envoy/cluster.env
+sudo cp mesh.yaml /etc/istio/config/mesh
+
+# Add istiod host
+sudo sh -c 'cat $(eval echo ~$SUDO_USER)/hosts >> /etc/hosts'
+
+# Fix permissions
+sudo chown -R istio-proxy /var/lib/istio /etc/certs /etc/istio/proxy
+
+# Start Istio
+sudo systemctl start istio
+```
+
+---
+
+#### 4. Verify Connection
+
+**Watch WorkloadEntry creation**:
+```bash
+kubectl get workloadentry -n vm-namespace --watch
+```
+
+**Result**: WorkloadEntry appears automatically when VM starts Istio
+
+---
+
+#### 5. Access K8s Services from VM
+
+**Deploy service in K8s**:
+```bash
+kubectl label namespace default istio-injection=enabled
+kubectl apply -f hello-world.yaml
+```
+
+**From VM, access K8s service**:
+```bash
+curl http://hello-world.default
+# Returns: Hello World
+```
+
+---
+
+#### 6. Access VM Service from K8s
+
+**Run service on VM**:
+```bash
+sudo python3 -m http.server 80
+```
+
+**Create K8s Service for VM**:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-vm
+  namespace: vm-namespace
+spec:
+  ports:
+  - port: 80
+    name: http-vm
+  selector:
+    app: hello-vm
+```
+
+**From K8s pod, access VM service**:
+```bash
+kubectl run curl --image=radial/busyboxplus:curl -i --tty --rm
+curl hello-vm.vm-namespace
+# Returns: Directory listing
+```
+
+---
+
+### Key Concepts
+
+**Auto-registration**: VM automatically creates WorkloadEntry when joining mesh
+
+**East-west gateway**: Exposes control plane to VMs
+
+**WorkloadGroup**: Template for VM workloads
+
+**WorkloadEntry**: Created automatically for each VM
+
+**Bidirectional**: VM can access K8s services AND K8s can access VM services
+
+---
+
+:::tip Key Takeaway
+**Lab shows**: How to connect VM to Istio mesh
+
+**Steps**:
+1. Install Istio with auto-registration enabled
+2. Deploy east-west gateway
+3. Generate VM config files
+4. Install Istio sidecar on VM
+5. Start Istio service on VM
+
+**Result**: VM joins mesh, WorkloadEntry created automatically
+
+**Bidirectional access**:
+- VM → K8s services (using service names)
+- K8s → VM services (using K8s Service)
+:::
+
+---
+
+## Lab 2: Wasm Plugins
+
+### What This Lab Does
+
+**Goal**: Write simple WebAssembly plugin using **Rust** and load it into Envoy sidecar to add custom HTTP headers
+
+---
+
+### Prerequisites
+
+#### 1. Rust Toolchain
+
+**Install Rust**: https://www.rust-lang.org/tools/install
+
+**Requires**: `cargo` command available
+
+**Version**: Use stable or later
+
+---
+
+#### 2. Wasm Target
+
+**Add Wasm target**:
+```bash
+rustup target add wasm32-wasi
+```
+
+---
+
+#### 3. Docker/Podman
+
+**Purpose**: Package `.wasm` file into image and push to OCI registry
+
+---
+
+:::warning Windows Users
+Execute examples in WSL or Unix-like environment to avoid path/compilation issues
+:::
+
+---
+
+### Step 1: Initialize Project
+
+#### Create Directory
+
+```bash
+mkdir wasm-extension-rs && cd wasm-extension-rs
+```
+
+---
+
+#### Initialize Cargo Project
+
+```bash
+cargo init --lib
+```
+
+**Generates**: `Cargo.toml` and `src/lib.rs`
+
+---
+
+#### Add Dependencies to Cargo.toml
+
+```toml
+[package]
+name = "wasm-extension-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+proxy-wasm = "0.2.2"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+
+[lib]
+crate-type = ["cdylib"]
+```
+
+**Key setting**: `crate-type = ["cdylib"]` = Output is dynamic library (suitable for Wasm)
+
+---
+
+### Step 2: Write Plugin Logic
+
+**File**: `src/lib.rs`
+
+**What it does**:
+- Parses JSON config from `WasmPlugin`
+- Inserts key-value pairs into HTTP response headers
+
+**Key parts**:
+
+#### 1. Define Config Struct
+
+```rust
+#[derive(Deserialize, Default, Clone)]
+struct PluginConfig {
+    header_1: String,
+    header_2: String,
+}
+```
+
+---
+
+#### 2. RootContext
+
+**Function**: `on_configure` - Called when Wasm VM initializes
+
+**Does**:
+- Retrieves `pluginConfig` from Istio's WasmPlugin
+- Parses JSON into `PluginConfig` struct
+
+---
+
+#### 3. HttpContext
+
+**Function**: `on_http_response_headers` - Called during backend response
+
+**Does**:
+- Injects `header_1` and `header_2` into response headers
+
+---
+
+### Step 3: Compile Wasm Binary
+
+```bash
+cargo build --release --target wasm32-wasi
+```
+
+**Output**: `target/wasm32-wasi/release/wasm_extension_rs.wasm`
+
+**Rename for easier packaging**:
+```bash
+cp target/wasm32-wasi/release/wasm_extension_rs.wasm plugin.wasm
+```
+
+---
+
+### Step 4: Package and Push to OCI Registry
+
+#### Create Dockerfile
+
+```dockerfile
+FROM scratch
+COPY plugin.wasm /plugin.wasm
+```
+
+---
+
+#### Build and Push
+
+```bash
+export REPO="your-dockerhub-username/wasm-plugin-rs"
+docker build -t $REPO:v1 .
+docker push $REPO:v1
+```
+
+---
+
+### Step 5: Create WasmPlugin Resource
+
+**File**: `wasm-plugin-rs.yaml`
+
+```yaml
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: wasm-example-rs
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: httpbin
+  url: oci://docker.io/your-dockerhub-username/wasm-plugin-rs:v1
+  imagePullPolicy: IfNotPresent
+  pluginConfig:
+    header_1: "my-first-header"
+    header_2: "my-second-header"
+```
+
+**Apply**:
+```bash
+kubectl apply -f wasm-plugin-rs.yaml
+```
+
+**Key fields**:
+- `selector.matchLabels` = Which workloads get plugin (here: `app=httpbin`)
+- `url` = OCI registry location with `oci://` prefix
+- `pluginConfig` = JSON config passed to plugin
+
+---
+
+### Step 6: Deploy and Test
+
+#### Enable Sidecar Injection
+
+```bash
+kubectl label namespace default istio-injection=enabled
+```
+
+---
+
+#### Deploy httpbin
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/master/samples/httpbin/httpbin.yaml
+```
+
+---
+
+#### Wait for Pod
+
+```bash
+kubectl get pods
+```
+
+---
+
+#### Test with curl
+
+```bash
+# Deploy test pod
+kubectl run curl --image=curlimages/curl:latest --image-pull-policy=IfNotPresent --command -- /bin/sh -c "sleep infinity"
+
+# Send request
+kubectl exec -it curl -- curl -s --head httpbin:8000/get
+```
+
+---
+
+#### Expected Output
+
+```
+HTTP/1.1 200 OK
+access-control-allow-credentials: true
+access-control-allow-origin: *
+content-type: application/json; charset=utf-8
+date: Thu, 20 Mar 2025 08:57:16 GMT
+x-envoy-upstream-service-time: 33
+header_1: my-first-header
+header_2: my-second-header
+server: envoy
+transfer-encoding: chunked
+```
+
+**Success**: Custom headers `header_1` and `header_2` appear in response!
+
+---
+
+### Key Concepts
+
+#### Rust vs Other Options
+
+| Option | Pros | Cons | Use Case |
+|--------|------|------|----------|
+| **Rust/C++** | High performance, memory safety, portable | Requires compilation | Production, complex logic |
+| **Lua** | No compilation, simple | Lower performance | Lightweight scripts |
+| **External Processing** | Any language via gRPC | Network overhead | Maximum flexibility |
+
+---
+
+#### Why Not proxy-wasm-go-sdk?
+
+**Reason**: TinyGo has memory management limitations
+
+**Status**: Community no longer recommends for production
+
+**Alternative**: Use Rust or C++ instead
+
+---
+
+#### WasmPlugin Status
+
+**Current**: Alpha stage in Istio
+
+**Usability**: Sufficient for most common use cases
+
+**Future**: Watch for updates in new Istio releases
+
+---
+
+:::tip Key Takeaway
+**Lab shows**: Write Rust Wasm plugin and load into Envoy
+
+**Steps**:
+1. Install Rust + add wasm32-wasi target
+2. Create Cargo project with proxy-wasm dependency
+3. Write plugin logic (parse config, inject headers)
+4. Compile to Wasm binary
+5. Package into OCI image and push
+6. Create WasmPlugin resource
+7. Test with httpbin
+
+**Result**: Custom headers injected into HTTP responses
+
+**Use Rust for**: Production plugins with complex logic
+
+**Use Lua for**: Simple, lightweight scripts
+
+**External Processing**: Any language via gRPC (but has network overhead)
+:::
+
+---
+
+# Troubleshooting
+
+## Envoy Basics
+
+### What is Envoy?
+
+**Envoy** = High-performance proxy for cloud-native applications
+
+**Role in Istio**: Acts as the **data plane**
+
+---
+
+### Core Concepts
+
+**Four key components**:
+
+#### 1. Listeners
+
+**What**: Named network locations (IP + port) where Envoy receives inbound traffic
+
+**Example**: `0.0.0.0:15006` for inbound, `0.0.0.0:15001` for outbound
+
+---
+
+#### 2. Routes
+
+**What**: Define how traffic is handled once received by listener
+
+**Does**: Routing rules, matching conditions
+
+---
+
+#### 3. Clusters
+
+**What**: Logical groups of upstream endpoints
+
+**Example**: All pods of a service grouped together
+
+---
+
+#### 4. Endpoints
+
+**What**: Actual destination IPs and ports that receive traffic
+
+**Example**: Individual pod IPs
+
+---
+
+### Mapping to Istio/Kubernetes
+
+| Envoy Concept | Maps To |
+|---------------|----------|
+| **Listeners** | Gateway, VirtualService |
+| **Routes** | VirtualService, DestinationRule |
+| **Clusters** | Kubernetes Service |
+| **Endpoints** | Pod IPs |
+
+---
+
+### How Envoy Works in Istio
+
+**Configuration**: Istio control plane (`istiod`) configures Envoy dynamically
+
+**Two modes**: Sidecar Mode and Ambient Mode
+
+---
+
+## Sidecar Mode
+
+### How It Works
+
+**Setup**: Each workload has Envoy proxy injected as sidecar container
+
+**Traffic redirection**: Uses **iptables rules**
+
+---
+
+### Traffic Flow
+
+#### Inbound Traffic (from external sources)
+
+**Redirected to**: `0.0.0.0:15006`
+
+**Process**:
+1. Traffic hits port 15006
+2. Envoy applies policies
+3. Forwards to workload
+
+---
+
+#### Outbound Traffic (from workload to external services)
+
+**Redirected to**: `0.0.0.0:15001`
+
+**Process**:
+1. Traffic hits port 15001
+2. Envoy determines routing
+3. Forwards to destination
+
+---
+
+### OutboundTrafficPolicy
+
+**What happens**: When Envoy can't find matching route for outbound traffic
+
+#### Two options:
+
+| Policy | Behavior | Use Case |
+|--------|----------|----------|
+| **ALLOW_ANY** (default) | Routes through PassthroughCluster | Allow external traffic |
+| **REGISTRY_ONLY** | Blocks traffic | Strict security |
+
+---
+
+## Ambient Mode
+
+### What's Different?
+
+**No sidecar proxies** = No per-pod Envoy containers
+
+**Two components**: Ztunnel (L4) + Waypoint Proxies (L7)
+
+---
+
+### Ztunnel (L4 Proxy)
+
+**What**: Lightweight **Rust-based proxy**
+
+**Handles**: **L4 (TCP) traffic**
+
+**Does**:
+- Intercepts traffic without modifying pod networking
+- Provides mTLS encryption transparently
+- Runs per node (not per pod)
+
+---
+
+### Waypoint Proxies (L7 Proxy)
+
+**What**: **Envoy-based L7 proxies**
+
+**Deployed**: Per **service account**
+
+**Handles**: **HTTP, gRPC, and other L7 traffic**
+
+**Does**:
+- Authorization policies
+- Request routing
+- Advanced L7 features
+
+---
+
+### Key Difference
+
+**Sidecar Mode**: Uses Envoy listeners on ports `15006` and `15001` for traffic interception
+
+**Ambient Mode**: 
+- **No ports 15006/15001** (no per-pod sidecars)
+- **Ztunnel handles L4 traffic**
+- **Waypoint proxies process L7 requests** (when needed)
+
+---
+
+### Traffic Flow Comparison
+
+| Mode | L4 Traffic | L7 Traffic | Ports Used |
+|------|------------|------------|------------|
+| **Sidecar** | Envoy sidecar | Envoy sidecar | 15006, 15001 |
+| **Ambient** | Ztunnel | Waypoint proxy | No 15006/15001 |
+
+---
+
+:::tip Key Takeaway
+**Envoy** = Data plane proxy in Istio
+
+**Four concepts**: Listeners, Routes, Clusters, Endpoints
+
+**Sidecar Mode**:
+- Envoy per pod
+- Inbound: port 15006
+- Outbound: port 15001
+- iptables redirects traffic
+
+**Ambient Mode**:
+- No sidecars
+- Ztunnel (Rust) = L4 traffic
+- Waypoint (Envoy) = L7 traffic
+- No ports 15006/15001
+
+**OutboundTrafficPolicy**:
+- `ALLOW_ANY` = Allow unknown destinations (default)
+- `REGISTRY_ONLY` = Block unknown destinations
+:::
+
+---
+
+## Envoy Example - Hands-on
+
+### What This Shows
+
+**Goal**: Walk through how Envoy determines where to send request from web-frontend to customers service
+
+**Request**: `web-frontend` → `customers.default.svc.cluster.local`
+
+---
+
+### Step 1: Deploy Resources
+
+```bash
+kubectl apply -f gateway.yaml
+kubectl apply -f web-frontend.yaml
+kubectl apply -f web-frontend-vs.yaml
+kubectl apply -f customers-v1.yaml
+kubectl apply -f customers-vs.yaml
+kubectl apply -f customers-dr.yaml
+```
+
+**Setup**: Deploys only v1 version of Customer service, routes all traffic to it
+
+---
+
+### Step 2: Inspect Listeners
+
+#### List All Listeners
+
+```bash
+istioctl proxy-config listeners web-frontend-<pod-id>
+```
+
+---
+
+#### Filter Specific Port
+
+**Question**: Web frontend sends HTTP request to port 80, which listener handles it?
+
+```bash
+istioctl proxy-config listeners web-frontend-<pod-id> --address 0.0.0.0 --port 80 -o json
+```
+
+**Answer**: Traffic routes through listener on `0.0.0.0:80`
+
+---
+
+#### Check RDS Configuration
+
+**Look for**:
+```json
+"rds": {
+  "configSource": {
+    "ads": {},
+    "resourceApiVersion": "V3"
+  },
+  "routeConfigName": "80"
+}
+```
+
+**Meaning**: Listener fetches route configuration named `"80"` via RDS (Route Discovery Service)
+
+---
+
+### Step 3: Inspect Routes
+
+**What routes do**: Map virtual hosts (domains) to clusters
+
+#### Check Route Config
+
+```bash
+istioctl proxy-config routes web-frontend-<pod-id> --name 80 -o json
+```
+
+---
+
+#### What You'll Find
+
+**VirtualHost** for `customers.default.svc.cluster.local`:
+
+```json
+{
+  "virtualHosts": [
+    {
+      "name": "customers.default.svc.cluster.local:80",
+      "domains": [
+        "customers.default.svc.cluster.local",
+        "customers",
+        ...
+      ],
+      "routes": [
+        {
+          "match": {
+            "prefix": "/"
+          },
+          "route": {
+            "cluster": "outbound|80|v1|customers.default.svc.cluster.local"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Key info**:
+- **Domains**: Service can be reached by multiple names
+- **Match prefix `/`**: Matches all traffic (no advanced routing)
+- **Cluster**: Routes to `v1` subset of customers service
+
+---
+
+### Step 4: Inspect Clusters
+
+**Now we know cluster name**: `outbound|80|v1|customers.default.svc.cluster.local`
+
+#### Get Cluster Details
+
+```bash
+istioctl proxy-config clusters web-frontend-<pod-id> --fqdn customers.default.svc.cluster.local
+```
+
+---
+
+#### Sample Output
+
+```
+SERVICE FQDN                              PORT  SUBSET  DIRECTION  TYPE  DESTINATION RULE
+customers.default.svc.cluster.local       80    -       outbound   EDS   customers.default
+customers.default.svc.cluster.local       80    v1      outbound   EDS   customers.default
+```
+
+**Key info**:
+- **v1 subset exists**: Because of DestinationRule configuration
+- **Type EDS**: Endpoint Discovery Service (gets endpoints dynamically)
+
+---
+
+### Step 5: Inspect Endpoints
+
+**Final step**: Find actual endpoint IP and port
+
+#### Get Endpoint Details
+
+```bash
+istioctl proxy-config endpoints web-frontend-<pod-id> --cluster "outbound|80|v1|customers.default.svc.cluster.local"
+```
+
+---
+
+#### Sample Output
+
+```
+ENDPOINT              STATUS   OUTLIER CHECK  CLUSTER
+10.244.1.122:3000     HEALTHY  OK             outbound|80|v1|customers.default.svc.cluster.local
+```
+
+**Result**: Envoy forwards traffic to `10.244.1.122:3000` (v1 subset)
+
+---
+
+### Traffic Flow Summary
+
+```
+1. Listener (0.0.0.0:80)
+   ↓
+   Receives HTTP request to port 80
+   ↓
+2. Route (name: "80")
+   ↓
+   Matches domain: customers.default.svc.cluster.local
+   Matches prefix: /
+   ↓
+3. Cluster (outbound|80|v1|customers.default.svc.cluster.local)
+   ↓
+   v1 subset from DestinationRule
+   ↓
+4. Endpoint (10.244.1.122:3000)
+   ↓
+   Actual pod IP and port
+```
+
+---
+
+### Visual Flow
+
+**Listener** → **Route** → **Cluster** → **Endpoint**
+
+| Step | Component | What It Does | Command |
+|------|-----------|--------------|----------|
+| 1 | **Listener** | Receives traffic on port 80 | `proxy-config listeners` |
+| 2 | **Route** | Maps domain to cluster | `proxy-config routes` |
+| 3 | **Cluster** | Groups endpoints (v1 subset) | `proxy-config clusters` |
+| 4 | **Endpoint** | Actual pod IP:port | `proxy-config endpoints` |
+
+---
+
+### Key Commands
+
+```bash
+# List listeners
+istioctl proxy-config listeners <pod-id>
+
+# Filter listener by port
+istioctl proxy-config listeners <pod-id> --address 0.0.0.0 --port 80 -o json
+
+# Check routes
+istioctl proxy-config routes <pod-id> --name 80 -o json
+
+# Check clusters
+istioctl proxy-config clusters <pod-id> --fqdn <service-fqdn>
+
+# Check endpoints
+istioctl proxy-config endpoints <pod-id> --cluster "<cluster-name>"
+```
+
+---
+
+:::tip Key Takeaway
+**Envoy flow**: Listener → Route → Cluster → Endpoint
+
+**Step-by-step**:
+1. **Listener** (port 80) receives request
+2. **Route** (RDS config "80") matches domain and prefix
+3. **Cluster** (v1 subset) groups endpoints
+4. **Endpoint** (pod IP:port) receives traffic
+
+**Commands**: Use `istioctl proxy-config` to inspect each step
+
+**This shows**: How Istio translates high-level routing rules (VirtualService, DestinationRule) into actual Envoy configurations
+:::
+
+---
+
+## Debugging Checklist
+
+:::warning Sidecar Mode Only
+These troubleshooting steps apply primarily to **Sidecar-based** Istio deployments. Ambient mode uses different architecture and requires different debugging approaches.
+:::
+
+---
+
+### Overview
+
+**Two main areas to check**:
+1. **Configuration Validation** - Is your Istio config correct?
+2. **Runtime Checks** - Is Envoy handling config correctly?
+
+---
+
+## Configuration Validation
+
+### 1. Is Configuration Valid?
+
+#### istioctl validate
+
+**What it does**: Checks basic YAML and API syntax
+
+```bash
+istioctl validate -f myresource.yaml
+```
+
+**Success output**:
+```
+validation succeed
+```
+
+**Error example**:
+```
+unknown field "worloadSelector" in v1.ServiceEntry
+```
+
+---
+
+#### istioctl analyze
+
+**What it does**: Analyzes config for semantic issues
+
+```bash
+# Analyze live cluster
+istioctl analyze --all-namespaces
+```
+
+**Finds issues like**:
+- Non-existent hosts in VirtualServices
+- Invalid subset references in DestinationRules
+
+**Error example**:
+```
+Error [IST0101] (VirtualService customers.default) Referenced host not found: "cusomers.default.svc.cluster.local"
+Error [IST0101] (VirtualService customers.default) Referenced host+subset in destinationrule not found: "cusomers.default.svc.cluster.local+v1"
+```
+
+---
+
+### 2. Are Namespaces and Names Correct?
+
+**Key point**: Most Istio resources are **namespace-scoped**
+
+**Common mistake**: VirtualService in `default` namespace referencing Gateway in `istio-system` namespace
+
+**Rule**: Resources must be in **same namespace** as target service (or properly configured for cross-namespace)
+
+---
+
+### 3. Are Selectors Correct?
+
+**Check**:
+- Pods have correct labels (e.g., `app: customers`)
+- Resources reference matching labels
+- Resources are in correct namespace
+
+---
+
+## Runtime Checks
+
+### istioctl x describe
+
+**What it does**: Quick diagnostic summary for Pod or Service
+
+**Shows**:
+- Which Services match the Pod
+- VirtualServices or DestinationRules affecting it
+- Warnings (e.g., non-existent host)
+
+**Warning example**:
+```
+WARNING: No destinations match pod subsets (checked 1 HTTP routes)
+Route to cusomers.default.svc.cluster.local
+```
+
+**Catches**: Typo `cusomers` instead of `customers`
+
+---
+
+### Did Envoy Accept Configuration?
+
+#### istioctl proxy-status
+
+**What it does**: Shows if Envoy proxies are in sync with control plane
+
+```bash
+istioctl proxy-status
+```
+
+**Healthy status**: `SYNCED` for CDS, LDS, EDS, RDS
+
+**Problem statuses**:
+- `STALE` = Outdated config
+- `NOT SENT` = Config not delivered
+
+**Possible causes**:
+- Networking issues (Envoy can't reach Istiod)
+- Resource overload in Istiod
+- Invalid Envoy configuration
+
+**Missing Pod**: Sidecar injection failed or can't reach Istiod
+
+---
+
+### Does Envoy Have Expected Configuration?
+
+**Use**: `istioctl proxy-config` commands
+
+#### Key Commands
+
+| Command | What It Shows |
+|---------|---------------|
+| `istioctl proxy-config cluster [pod] -n [namespace]` | Envoy cluster config (DestinationRules) |
+| `istioctl proxy-config route [pod] -n [namespace]` | Envoy route config (VirtualServices) |
+| `istioctl proxy-config listener [pod] -n [namespace]` | Ports and filters Envoy listens on |
+| `istioctl proxy-config endpoint [pod] -n [namespace]` | Service endpoints Envoy sees |
+| `istioctl proxy-config bootstrap [pod] -n [namespace]` | Envoy's initial bootstrap config |
+
+**Example**: VirtualService with 80%-20% traffic split should show `weightedClusters` in route config
+
+---
+
+### Additional Debugging Commands
+
+#### istioctl pc log
+
+**What it does**: View or adjust Envoy logging level dynamically
+
+```bash
+istioctl pc log [pod]
+```
+
+---
+
+#### istioctl admin
+
+**What it does**: Advanced admin actions
+
+```bash
+# Set debug logging
+istioctl admin log [pod] --level debug
+
+# Port forward to Envoy admin
+istioctl admin port-forward [pod] 15000
+```
+
+**Access**: Browse `/config_dump`, `/stats`, etc.
+
+---
+
+### Check Istiod Logs
+
+**When to check**: Configuration doesn't show up in Envoy
+
+```bash
+kubectl logs -f <istiod-pod> -n istio-system
+```
+
+**Error example**:
+```
+ADS:LDS: ACK ERROR ... script load error [string "function envoy_on_response(response_handle)..."]
+```
+
+**Tip**: Search logs for your resource name to find relevant errors
+
+---
+
+## Inspecting Envoy Logs
+
+### View Sidecar Logs
+
+```bash
+kubectl logs <your-pod> -c istio-proxy -n <namespace>
+```
+
+---
+
+### Common Error Codes
+
+| Code | Meaning | Possible Cause |
+|------|---------|----------------|
+| **NR** | No Route | DestinationRule or VirtualService mismatch |
+| **UF** | Upstream Failure | mTLS issue or no healthy upstream |
+| **UO** | Upstream Overflow | Circuit breaker triggered |
+| **UH** | No Healthy Upstream | All endpoints unhealthy or failing readiness |
+
+---
+
+## Ephemeral Containers (K8s 1.25+)
+
+**What**: Inject temporary debug container into running Pod
+
+**Use for**: Run `curl`, `tcpdump`, network diagnostics
+
+```bash
+kubectl debug pod/<pod-name> -n <namespace> --image=busybox --target=istio-proxy
+```
+
+**Benefit**: Debug from same network namespace as Envoy without modifying Deployment
+
+---
+
+## ControlZ - Istiod Logging
+
+**What**: Dynamically adjust Istiod logging levels
+
+```bash
+istioctl dashboard controlz $(kubectl -n istio-system get pods -l app=istiod -o jsonpath='{.items[0].metadata.name}').istio-system
+```
+
+**Then**: Open **Logging Scopes** menu and adjust log level
+
+**Use for**: Get more detailed pilot logs to isolate issues
+
+---
+
+### Debugging Flow
+
+```
+1. Configuration Validation
+   ↓
+   - istioctl validate (syntax)
+   - istioctl analyze (semantic issues)
+   - Check namespaces and selectors
+   ↓
+2. Runtime Checks
+   ↓
+   - istioctl x describe (quick summary)
+   - istioctl proxy-status (sync status)
+   - istioctl proxy-config (Envoy config)
+   ↓
+3. Deep Debugging
+   ↓
+   - Check Istiod logs
+   - Check Envoy logs (error codes)
+   - Use ephemeral containers
+   - Adjust logging with ControlZ
+```
+
+---
+
+:::tip Key Takeaway
+**Two-step debugging**:
+1. **Configuration** - Validate with `istioctl validate` and `istioctl analyze`
+2. **Runtime** - Check with `istioctl proxy-status` and `istioctl proxy-config`
+
+**Key commands**:
+- `istioctl validate` = Check syntax
+- `istioctl analyze` = Find semantic issues
+- `istioctl x describe` = Quick diagnostic
+- `istioctl proxy-status` = Check sync status
+- `istioctl proxy-config` = Inspect Envoy config
+
+**Common issues**:
+- Wrong namespace
+- Typos in hostnames
+- Mismatched selectors
+- Config not synced to Envoy
+
+**Envoy error codes**: NR (No Route), UF (Upstream Failure), UO (Overflow), UH (No Healthy)
+
+**Advanced**: Use ephemeral containers and ControlZ for deep debugging
+:::
+
+---
+
+# Real World Examples
+
+## Create a Cluster (GKE)
+
+### What This Is
+
+**Platform**: Google Cloud Platform (GCP)
+
+**Purpose**: Create Kubernetes cluster to host Online Boutique application with Istio
+
+---
+
+### Steps to Create Cluster
+
+#### 1. Open GCP Console
+
+**URL**: https://console.cloud.google.com/
+
+---
+
+#### 2. Navigate to Kubernetes Engine
+
+**From Navigation** → Select **Kubernetes Engine**
+
+---
+
+#### 3. Create Cluster
+
+Click **Create Cluster**
+
+---
+
+#### 4. Switch to Standard Cluster
+
+**Type**: Standard cluster (not Autopilot)
+
+---
+
+#### 5. Configure Cluster
+
+**Cluster name**: `boutique-demo`
+
+**Location type**: Zonal
+
+**Zone**: Pick zone closest to your location
+
+---
+
+#### 6. Configure Node Pool
+
+Click **default-pool**
+
+**Number of nodes**: `5`
+
+---
+
+#### 7. Configure Node Machine Type
+
+Click **Nodes**
+
+**Machine type**: `e2-medium (2 vCPU, 4 GB memory)`
+
+---
+
+#### 8. Create
+
+Click **Create** button
+
+**Wait**: Cluster creation takes a couple of minutes
+
+---
+
+### Accessing the Cluster
+
+**Two options**:
+
+#### Option 1: Cloud Shell (Browser)
+
+1. Click **Connect** next to cluster
+2. Click **Run in Cloud Shell** button
+3. Cloud Shell opens and configures kubectl automatically
+
+---
+
+#### Option 2: Local Machine
+
+1. Install `gcloud` CLI on your computer
+2. Run same command from your computer
+
+---
+
+### Cluster Configuration Summary
+
+| Setting | Value |
+|---------|-------|
+| **Name** | boutique-demo |
+| **Type** | Standard (Zonal) |
+| **Nodes** | 5 |
+| **Machine** | e2-medium (2 vCPU, 4 GB) |
+| **Platform** | GCP |
+
+---
+
+:::tip Key Takeaway
+**GKE cluster setup** for Istio demo:
+- **Name**: boutique-demo
+- **5 nodes** with e2-medium (2 vCPU, 4 GB)
+- **Access**: Cloud Shell or local gcloud CLI
+- **Can also use**: Azure or AWS for same application
+:::
+
+---
+
+## Install Istio Using Helm
+
+### What This Does
+
+**Method**: Install Istio using Helm (package manager for Kubernetes)
+
+**Profile**: Demo profile (for learning)
+
+---
+
+### Installation Steps
+
+#### 1. Add Istio Helm Repository
+
+```bash
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+helm repo update
+```
+
+---
+
+#### 2. Install Istio Base Chart (CRDs)
+
+```bash
+helm install istio-base istio/base -n istio-system --set defaultRevision=default --create-namespace
+```
+
+**What it does**: Installs Custom Resource Definitions (CRDs)
+
+**Creates**: `istio-system` namespace
+
+---
+
+#### 3. Install Istio Profile
+
+```bash
+helm install istiod istio/istiod -n istio-system --set profile=demo
+```
+
+**Profile**: `demo` (includes extra monitoring for learning)
+
+**Installs**: Istiod (control plane)
+
+---
+
+#### 4. Enable Sidecar Auto-Injection
+
+```bash
+kubectl label namespace default istio-injection=enabled
+```
+
+**Effect**: All new pods in `default` namespace get sidecar automatically
+
+---
+
+#### 5. Verify Installation
+
+```bash
+kubectl get pod -n istio-system
+```
+
+**Check**: `istiod` pod should be Running
+
+---
+
+### Installation Summary
+
+| Step | Command | What It Does |
+|------|---------|-------------|
+| **1** | `helm repo add istio` | Add Istio Helm repository |
+| **2** | `helm install istio-base` | Install CRDs |
+| **3** | `helm install istiod` | Install control plane |
+| **4** | `kubectl label namespace` | Enable auto-injection |
+| **5** | `kubectl get pod` | Verify installation |
+
+---
+
+:::tip Key Takeaway
+**Helm installation** = 3 steps:
+1. **Base chart** = CRDs
+2. **Istiod** = Control plane
+3. **Label namespace** = Auto-inject sidecars
+
+**Profile**: Use `demo` for learning, `default` for production
+:::
+
+---
+
+## Deploy Online Boutique Application
+
+### What This Is
+
+**Application**: Online Boutique (Google's microservices demo app)
+
+**Purpose**: Real-world example with multiple microservices to test Istio features
+
+---
+
+### Deployment Steps
+
+#### 1. Clone Repository
+
+```bash
+git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
+```
+
+---
+
+#### 2. Go to Folder
+
+```bash
+cd microservices-demo
+```
+
+---
+
+#### 3. Deploy Application
+
+```bash
+kubectl apply -f release/kubernetes-manifests.yaml
+```
+
+**What it does**: Creates all Kubernetes resources (Deployments, Services)
+
+---
+
+#### 4. Check Pods
+
+```bash
+kubectl get pods
+```
+
+**Expected**: All pods show `2/2` READY (app + sidecar)
+
+**Example output**:
+```
+NAME                          READY   STATUS
+adservice-xxx                 2/2     Running
+cartservice-xxx               2/2     Running
+checkoutservice-xxx           2/2     Running
+currencyservice-xxx           2/2     Running
+emailservice-xxx              2/2     Running
+frontend-xxx                  2/2     Running
+loadgenerator-xxx             2/2     Running
+paymentservice-xxx            2/2     Running
+productcatalogservice-xxx     2/2     Running
+recommendationservice-xxx     2/2     Running
+redis-cart-xxx                2/2     Running
+shippingservice-xxx           2/2     Running
+```
+
+---
+
+#### 5. Deploy Istio Resources
+
+```bash
+kubectl apply -f ./istio-manifests
+```
+
+**What it does**: Creates Gateway and VirtualService for routing
+
+---
+
+#### 6. Get Ingress IP
+
+```bash
+INGRESS_HOST="$(kubectl -n istio-system get service istio-ingressgateway \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+echo "$INGRESS_HOST"
+```
+
+**Output**: External IP address
+
+---
+
+#### 7. Access Application
+
+Open browser: `http://<INGRESS_HOST>`
+
+**You'll see**: Online Boutique frontend
+
+---
+
+#### 8. Delete frontend-external Service
+
+```bash
+kubectl delete svc frontend-external
+```
+
+**Why**: We use Istio ingress gateway now, don't need extra LoadBalancer
+
+---
+
+### What's Included
+
+| Component | Purpose |
+|-----------|----------|
+| **12 microservices** | Full e-commerce app |
+| **Load generator** | Simulates traffic automatically |
+| **Istio manifests** | Gateway + VirtualService |
+| **Sidecar injection** | All pods get Envoy proxy |
+
+---
+
+:::tip Key Takeaway
+**Online Boutique** = Real microservices app for testing Istio
+
+**Steps**: Clone → Deploy app → Deploy Istio resources → Get IP → Access
+
+**Pods**: Show `2/2` READY (app + sidecar)
+
+**Load generator**: Automatically creates traffic for testing
+
+**Delete**: `frontend-external` service (use Istio gateway instead)
+:::
+
+---
+
+## Deploy Observability Tools
+
+### What This Does
+
+**Purpose**: Install monitoring and tracing tools to see what's happening in the mesh
+
+**Tools**: Prometheus, Grafana, Kiali, Zipkin
+
+---
+
+### Installation Commands
+
+#### Deploy All Tools
+
+```bash
+# Prometheus (metrics storage)
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/prometheus.yaml
+
+# Grafana (metrics visualization)
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/grafana.yaml
+
+# Kiali (service mesh dashboard)
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/kiali.yaml
+
+# Zipkin (distributed tracing)
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/extras/zipkin.yaml
+```
+
+---
+
+### Troubleshooting
+
+:::warning Kiali Error
+If you get error:
+```
+No matches for kind "MonitoringDashboard" in version "monitoring.kiali.io/v1alpha1"
+```
+
+**Fix**: Re-run the Kiali command again
+:::
+
+---
+
+### Access Dashboards
+
+#### Option 1: Google Cloud Shell
+
+```bash
+# Open Kiali
+istioctl dash kiali
+```
+
+**Then**: Click **Web Preview** button → Select port `20001`
+
+---
+
+#### Option 2: Local Terminal
+
+```bash
+# Kiali
+istioctl dashboard kiali
+
+# Grafana
+istioctl dashboard grafana
+
+# Prometheus
+istioctl dashboard prometheus
+
+# Zipkin
+istioctl dashboard zipkin
+```
+
+**Access**: Browser opens automatically
+
+---
+
+### What You'll See in Kiali
+
+**Service graph** showing:
+- All 12 microservices
+- Traffic flow between services
+- Request rates
+- Health status (green/yellow/red)
+
+---
+
+### Tools Summary
+
+| Tool | Purpose | Port |
+|------|---------|------|
+| **Prometheus** | Store metrics | 9090 |
+| **Grafana** | Visualize metrics | 3000 |
+| **Kiali** | Service mesh dashboard | 20001 |
+| **Zipkin** | Distributed tracing | 9411 |
+
+---
+
+:::tip Key Takeaway
+**4 observability tools** = Prometheus + Grafana + Kiali + Zipkin
+
+**Deploy**: One kubectl command per tool
+
+**Access**: Use `istioctl dashboard <tool-name>`
+
+**Kiali**: Shows visual graph of all services and traffic
+
+**Load generator**: Already running, so you'll see traffic immediately
+:::
+
+---
+
+## Routing Traffic (Traffic Splitting)
+
+### What This Does
+
+**Purpose**: Route traffic between two versions of frontend service (canary deployment)
+
+**Example**: 70% to original version, 30% to new version
+
+---
+
+### Steps
+
+#### 1. Delete Existing Frontend
+
+```bash
+kubectl delete deploy frontend
+```
+
+---
+
+#### 2. Deploy Original Version
+
+**Create file**: `frontend-original.yaml`
+
+**Key parts**:
+- Label: `version: original`
+- Image: `v0.10.2`
+
+```bash
+kubectl apply -f frontend-original.yaml
+```
+
+---
+
+#### 3. Create DestinationRule (Define Versions)
+
+**Create file**: `frontend-dr.yaml`
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: frontend
+spec:
+  host: frontend.default.svc.cluster.local
+  subsets:
+  - name: original
+    labels:
+      version: original
+  - name: v1
+    labels:
+      version: 1.0.0
+```
+
+**What it does**: Defines two subsets (original and v1)
+
+```bash
+kubectl apply -f frontend-dr.yaml
+```
+
+---
+
+#### 4. Update VirtualService (Route to Original)
+
+**Create file**: `frontend-vs.yaml`
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: frontend-ingress
+spec:
+  hosts:
+  - '*'
+  gateways:
+  - frontend-gateway
+  http:
+  - route:
+    - destination:
+        host: frontend
+        port:
+          number: 80
+        subset: original
+```
+
+**What it does**: Routes 100% traffic to original version
+
+```bash
+kubectl apply -f frontend-vs.yaml
+```
+
+---
+
+#### 5. Deploy New Version (v1)
+
+**Create file**: `frontend-v1.yaml`
+
+**Key parts**:
+- Label: `version: 1.0.0`
+- Image: `v0.9.0` (different layout)
+
+```bash
+kubectl apply -f frontend-v1.yaml
+```
+
+**Note**: Traffic still goes to original (safe deployment)
+
+---
+
+#### 6. Split Traffic (70% Original, 30% v1)
+
+**Create file**: `frontend-30.yaml`
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: frontend-ingress
+spec:
+  hosts:
+  - '*'
+  gateways:
+  - frontend-gateway
+  http:
+  - route:
+    - destination:
+        host: frontend
+        port:
+          number: 80
+        subset: original
+      weight: 70
+    - destination:
+        host: frontend
+        port:
+          number: 80
+        subset: v1
+      weight: 30
+```
+
+**What it does**: Splits traffic 70-30
+
+```bash
+kubectl apply -f frontend-30.yaml
+```
+
+---
+
+### Testing
+
+#### Browser Test
+
+Refresh page multiple times:
+- **70% of time**: See original layout
+- **30% of time**: See new layout (v1)
+
+---
+
+#### Kiali Visualization
+
+Open Kiali → Click **Graph**
+
+**You'll see**: Two frontend versions with traffic split shown
+
+---
+
+### Traffic Flow Summary
+
+```
+1. Delete old frontend
+   ↓
+2. Deploy original version (labeled)
+   ↓
+3. Create DestinationRule (define subsets)
+   ↓
+4. Update VirtualService (route to original)
+   ↓
+5. Deploy v1 version (safe, no traffic yet)
+   ↓
+6. Update VirtualService (split traffic 70-30)
+```
+
+---
+
+### Key Resources
+
+| Resource | Purpose | File |
+|----------|---------|------|
+| **Deployment (original)** | Original frontend | frontend-original.yaml |
+| **Deployment (v1)** | New frontend | frontend-v1.yaml |
+| **DestinationRule** | Define subsets | frontend-dr.yaml |
+| **VirtualService (100%)** | Route all to original | frontend-vs.yaml |
+| **VirtualService (70-30)** | Split traffic | frontend-30.yaml |
+
+---
+
+:::tip Key Takeaway
+**Traffic splitting** = Canary deployment pattern
+
+**DestinationRule** = Define versions (subsets)
+
+**VirtualService** = Control traffic split (weights)
+
+**Safe deployment**: Deploy v1 first, then gradually shift traffic
+
+**Weights**: 70 + 30 = 100 (must add up to 100)
+
+**Use case**: Test new version with small % of users before full rollout
+:::
+
+---
+
+## Fault Injection (Chaos Testing)
+
+### What This Does
+
+**Purpose**: Test how your app handles failures (chaos engineering)
+
+**Two types**: Delay (slow service) and Abort (service fails)
+
+---
+
+### Example 1: Inject Delay
+
+#### What It Does
+
+**Target**: Recommendation service
+
+**Effect**: 5-second delay for 50% of requests
+
+---
+
+#### Create VirtualService
+
+**Create file**: `recommendation-delay.yaml`
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: recommendationservice
+spec:
+  hosts:
+  - recommendationservice
+  http:
+  - route:
+    - destination:
+        host: recommendationservice
+    fault:
+      delay:
+        percentage:
+          value: 50
+        fixedDelay: 5s
+```
+
+**Key parts**:
+- `percentage: 50` = Affect 50% of requests
+- `fixedDelay: 5s` = Add 5-second delay
+
+```bash
+kubectl apply -f recommendation-delay.yaml
+```
+
+---
+
+#### Testing Delay
+
+**Browser test**:
+1. Open `http://<INGRESS_HOST>`
+2. Click on any product
+3. Scroll to "Other Products You Might Like" section
+4. Refresh multiple times
+
+**Result**: Sometimes page loads fast, sometimes slow (5-second delay)
+
+---
+
+#### View in Grafana
+
+```bash
+istioctl dash grafana
+```
+
+**Steps**:
+1. Open **Istio Service Dashboard**
+2. Select `recommendationservice` from service list
+3. Select `source` in Reporter dropdown
+4. Look at **Client Request Duration** graph
+
+**You'll see**: Spike showing 5-second delay
+
+---
+
+### Example 2: Inject Abort (HTTP 500)
+
+#### What It Does
+
+**Target**: Product catalog service
+
+**Effect**: HTTP 500 error for 50% of requests
+
+---
+
+#### Create VirtualService
+
+**Create file**: `productcatalogservice-abort.yaml`
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: productcatalogservice
+spec:
+  hosts:
+  - productcatalogservice
+  http:
+  - route:
+    - destination:
+        host: productcatalogservice
+    fault:
+      abort:
+        percentage:
+          value: 50
+        httpStatus: 500
+```
+
+**Key parts**:
+- `percentage: 50` = Affect 50% of requests
+- `httpStatus: 500` = Return HTTP 500 error
+
+```bash
+kubectl apply -f productcatalogservice-abort.yaml
+```
+
+---
+
+#### Testing Abort
+
+**Browser test**:
+1. Refresh product page multiple times
+2. **50% of time**: Page loads normally
+3. **50% of time**: Error message appears
+
+**Error message**: Shows "fault filter abort" as cause
+
+---
+
+#### View in Grafana
+
+```bash
+istioctl dash grafana
+```
+
+**You'll see**: Graphs showing HTTP 500 errors
+
+---
+
+#### Cleanup
+
+```bash
+kubectl delete virtualservice productcatalogservice
+```
+
+---
+
+### Fault Injection Types
+
+| Type | What It Does | Use Case |
+|------|--------------|----------|
+| **Delay** | Adds latency | Test timeout handling |
+| **Abort** | Returns error code | Test error handling |
+
+---
+
+### Configuration Options
+
+| Field | Purpose | Example |
+|-------|---------|----------|
+| `percentage.value` | % of requests affected | 50 (means 50%) |
+| `fixedDelay` | Delay duration | 5s |
+| `httpStatus` | Error code to return | 500 |
+
+---
+
+### Testing Flow
+
+```
+1. Create VirtualService with fault injection
+   ↓
+2. Test in browser (refresh multiple times)
+   ↓
+3. View metrics in Grafana
+   ↓
+4. Verify app handles failures correctly
+   ↓
+5. Delete VirtualService (cleanup)
+```
+
+---
+
+:::tip Key Takeaway
+**Fault injection** = Test how app handles failures
+
+**Two types**:
+- **Delay** = Make service slow (test timeouts)
+- **Abort** = Make service fail (test error handling)
+
+**Percentage** = Control how many requests affected (50 = 50%)
+
+**Use for**: Chaos engineering, testing resilience
+
+**View results**: Grafana shows delays and errors
+
+**Safe testing**: Only affects % of requests, not all
+:::
+
+---
+
+## Resiliency (Timeouts & Retries)
+
+### What This Does
+
+**Purpose**: Make services resilient to failures using timeouts and retries
+
+**Features**: Timeout (stop waiting) and Retry (try again)
+
+---
+
+### Setup: Add Latency to Service
+
+#### Edit Deployment
+
+```bash
+kubectl edit deploy productcatalogservice
+```
+
+#### Add Environment Variable
+
+```yaml
+spec:
+  containers:
+  - env:
+    - name: EXTRA_LATENCY
+      value: 6s
+```
+
+**What it does**: Adds 6-second delay to every request
+
+**Save and exit**
+
+---
+
+#### Test
+
+Refresh page → Takes 6 seconds to load
+
+---
+
+### Example 1: Add Timeout
+
+#### What It Does
+
+**Target**: Product catalog service
+
+**Effect**: Stop waiting after 2 seconds
+
+---
+
+#### Create VirtualService
+
+**Create file**: `productcatalogservice-timeout.yaml`
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: productcatalogservice
+spec:
+  hosts:
+  - productcatalogservice
+  http:
+  - route:
+    - destination:
+        host: productcatalogservice
+    timeout: 2s
+```
+
+**Key part**: `timeout: 2s` = Wait max 2 seconds
+
+```bash
+kubectl apply -f productcatalogservice-timeout.yaml
+```
+
+---
+
+#### Testing Timeout
+
+Refresh page → Error appears:
+```
+rpc error: code = Unavailable desc = upstream request timeout
+could not retrieve products
+```
+
+**Why**: Service takes 6 seconds, but timeout is 2 seconds
+
+---
+
+### Example 2: Add Retry Policy
+
+#### What It Does
+
+**Target**: Product catalog service
+
+**Effect**: Retry 3 times, wait 1 second per try
+
+---
+
+#### Create VirtualService
+
+**Create file**: `productcatalogservice-retry.yaml`
+
+```yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: productcatalogservice
+spec:
+  hosts:
+  - productcatalogservice
+  http:
+  - route:
+    - destination:
+        host: productcatalogservice
+    retries:
+      attempts: 3
+      perTryTimeout: 1s
+```
+
+**Key parts**:
+- `attempts: 3` = Try 3 times
+- `perTryTimeout: 1s` = Wait 1 second per try
+
+```bash
+kubectl apply -f productcatalogservice-retry.yaml
+```
+
+---
+
+#### Testing Retry
+
+**Still see errors** (because service takes 6 seconds, each try times out at 1 second)
+
+---
+
+#### View Retries in Zipkin
+
+```bash
+istioctl dash zipkin
+```
+
+**Steps**:
+1. Click **+** button
+2. Select `serviceName` → `frontend.default`
+3. Select `minDuration` → Enter `1s`
+4. Click **Search**
+5. Click **Filter** → Select `productCatalogService.default`
+
+**You'll see**: Traces showing 1-second attempts (matching perTryTimeout)
+
+---
+
+#### Cleanup
+
+```bash
+kubectl delete vs productcatalogservice
+```
+
+---
+
+### Resiliency Features
+
+| Feature | What It Does | Use Case |
+|---------|--------------|----------|
+| **Timeout** | Stop waiting after X seconds | Prevent hanging requests |
+| **Retry** | Try again if fails | Handle temporary failures |
+
+---
+
+### Configuration Options
+
+| Field | Purpose | Example |
+|-------|---------|----------|
+| `timeout` | Max wait time | 2s |
+| `retries.attempts` | How many times to retry | 3 |
+| `retries.perTryTimeout` | Max wait per try | 1s |
+
+---
+
+### Testing Flow
+
+```
+1. Add latency to service (EXTRA_LATENCY env var)
+   ↓
+2. Test without timeout (page takes 6 seconds)
+   ↓
+3. Add timeout (2s) → See timeout error
+   ↓
+4. Add retry policy (3 attempts, 1s each)
+   ↓
+5. View retries in Zipkin traces
+   ↓
+6. Cleanup (delete VirtualService)
+```
+
+---
+
+### How It Works
+
+**Without retry**:
+```
+Request → Wait 6s → Timeout at 2s → Error
+```
+
+**With retry (3 attempts, 1s timeout each)**:
+```
+Attempt 1 → Wait 1s → Timeout → Retry
+Attempt 2 → Wait 1s → Timeout → Retry
+Attempt 3 → Wait 1s → Timeout → Final Error
+```
+
+---
+
+:::tip Key Takeaway
+**Resiliency** = Handle failures gracefully
+
+**Timeout** = Stop waiting after X seconds (prevent hanging)
+
+**Retry** = Try again if fails (handle temporary issues)
+
+**Configuration**: Set in VirtualService (no code changes)
+
+**View retries**: Zipkin shows each attempt
+
+**Real world**: Use timeout to fail fast, retry for temporary network issues
+
+**Best practice**: Set perTryTimeout < total timeout
 :::
 
 ---
