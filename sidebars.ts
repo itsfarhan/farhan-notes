@@ -1,67 +1,109 @@
 import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
-/**
- * Creating a sidebar enables you to:
- - create an ordered group of docs
- - render a sidebar for each doc of that group
- - provide next/previous navigation
- */
 const sidebars: SidebarsConfig = {
-  // By default, Docusaurus generates a sidebar from the docs folder structure
   tutorialSidebar: [
-    'intro',
+    // Getting Started
     {
       type: 'category',
-      label: 'Java',
+      label: '🚀 Getting Started',
+      collapsed: false,
       items: [
-        'java/index',
-        'java/java-notes'
+        'intro',
       ],
     },
+    
+    // Programming Languages
     {
       type: 'category',
-      label: 'AWS',
+      label: '💻 Programming Languages',
+      collapsed: true,
       items: [
-        'aws/index',
-        'aws/aws-ec2',
-        'aws/aws-vpc',
-        'aws/aws-iam',
-        'aws/aws-s3'
+        {
+          type: 'category',
+          label: 'Java',
+          items: [
+            'java/index',
+            'java/java-notes'
+          ],
+        },
+        {
+          type: 'category',
+          label: 'SQL',
+          items: [
+            'sql/index',
+            'sql/sql101'
+          ],
+        },
       ],
     },
+
+    // Cloud Platforms
     {
       type: 'category',
-      label: 'Kubernetes',
+      label: '☁️ Cloud Platforms',
+      collapsed: true,
       items: [
-        'kubernetes/index',
-        'kubernetes/Kubernetes-Beginnings',
-        'kubernetes/Kubernetes-Architecture',
-        'kubernetes/Pods',
-        'kubernetes/Replicasets',
-        'kubernetes/Deployments',
-        'kubernetes/Daemonsets',
-        'kubernetes/Services',
-        'kubernetes/Ingress',
-        'kubernetes/Autoscaling',
-        'kubernetes/Configmaps-and-Secrets',
-        'kubernetes/Volumes',
-        'kubernetes/Security',
-        'kubernetes/Probes',
-        'kubernetes/Other-Concepts',
-        'kubernetes/Exercises/exercises'
+        {
+          type: 'category',
+          label: 'AWS',
+          items: [
+            'aws/index',
+            'aws/aws-ec2',
+            'aws/aws-s3',
+            'aws/aws-vpc',
+            'aws/aws-iam',
+          ],
+        },
       ],
     },
-    {
-      type:'category',
-      label: 'SQL',
-      items:[
-        'sql/index',
-        'sql/sql101'
-      ],
-    },
+
+    // Cloud Native
     {
       type: 'category',
-      label: 'System Design',
+      label: '🌐 Cloud Native',
+      collapsed: true,
+      items: [
+        'cloudnative/index',
+        'cloudnative/istio',
+      ],
+    },
+
+    // Container Orchestration
+    {
+      type: 'category',
+      label: '🐳 Container Orchestration',
+      collapsed: true,
+      items: [
+        {
+          type: 'category',
+          label: 'Kubernetes',
+          items: [
+            'kubernetes/index',
+            'kubernetes/Kubernetes-Beginnings',
+            'kubernetes/Kubernetes-Architecture',
+            'kubernetes/Pods',
+            'kubernetes/Replicasets',
+            'kubernetes/Deployments',
+            'kubernetes/Daemonsets',
+            'kubernetes/Services',
+            'kubernetes/Ingress',
+            'kubernetes/Configmaps-and-Secrets',
+            'kubernetes/Volumes',
+            'kubernetes/Autoscaling',
+            'kubernetes/Security',
+            'kubernetes/Probes',
+            'kubernetes/Other-Concepts',
+            'kubernetes/Exercises/exercises',
+          ],
+        },
+      ],
+    },
+
+    // System Design
+    {
+      type: 'category',
+      label: '🏗️ System Design',
+      collapsed: true,
       items: [
         'systemdesign/index',
         'systemdesign/Basics',
@@ -69,23 +111,15 @@ const sidebars: SidebarsConfig = {
         'systemdesign/Networking Basics',
         'systemdesign/Databases and Storage',
         'systemdesign/Concurrency and Parallelism',
-        'systemdesign/API Design',        
-        'systemdesign/Designing Reliable Systems',
         'systemdesign/Designing Scalable Systems',
+        'systemdesign/High Availability and Disaster Recovery',
+        'systemdesign/API Design',
+        'systemdesign/Designing Reliable Systems',
         'systemdesign/Distributed Systems',
         'systemdesign/Microservices',
         'systemdesign/Event Driven Systems',
-        'systemdesign/High Availability and Disaster Recovery',
         'systemdesign/Object Oriented Principles',
         'systemdesign/Design Patterns',
-        ],
-    },
-    {
-      type: 'category',
-      label: 'Cloud Native Tools',
-      items: [
-        'cloudnative/index',
-        'cloudnative/istio',
       ],
     },
   ],

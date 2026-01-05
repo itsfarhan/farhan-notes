@@ -1,4 +1,5 @@
 k8gb is a Kubernetes-native Global Server Load Balancer (GSLB) that uses DNS to route clients to the best cluster/region for a given service (geo, failover, round-robin, etc.). It runs as an operator/controller in Kubernetes and orchestrates DNS records with external DNS providers and/or an authoritative DNS server.
+
 Core concepts and components
 
 GSLB Custom Resource (CRD)

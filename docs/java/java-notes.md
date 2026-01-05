@@ -99,6 +99,8 @@ Imagine you want to design a car. A class is like the blueprint for a car. It de
 
 **Code Example:** [ClassesObjectsExample.java](https://github.com/itsfarhan/interview-prep/blob/main/JavaExamples/src/ClassesObjectsExample.java)
 
+---
+
 ## Methods
 
 ### What is a Method?
@@ -122,6 +124,8 @@ accessModifier returnType methodName(parameterList) {
 2. **Standard Library Methods:** Pre-defined methods available in Java libraries
 
 **Code Example:** [MethodsExample.java](https://github.com/itsfarhan/interview-prep/blob/main/JavaExamples/src/MethodsExample.java)
+
+---
 
 ## Stack and Heap Memory
 
@@ -177,6 +181,7 @@ class Person {
     }
 }
 ```
+---
 
 ## Arrays
 

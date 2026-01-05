@@ -42,6 +42,11 @@ const config: Config = {
       {
         docs: {
           sidebarPath: "./sidebars.ts",
+          // Enable breadcrumbs
+          breadcrumbs: true,
+          // Show last update author and date from git history
+          showLastUpdateAuthor: true,
+          showLastUpdateTime: true,
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           // editUrl:
@@ -66,6 +71,25 @@ const config: Config = {
           customCss: "./src/css/custom.css",
         },
       } satisfies Preset.Options,
+    ],
+  ],
+
+  plugins: [
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      {
+        // Whether to index docs pages
+        indexDocs: true,
+        
+        // Whether to index blog pages
+        indexBlog: true,
+        
+        // Whether to index static pages
+        indexPages: false,
+        
+        // Language of your documentation, supports multiple languages
+        language: ["en"],
+      },
     ],
   ],
 
@@ -102,22 +126,49 @@ const config: Config = {
           type: "docSidebar",
           sidebarId: "tutorialSidebar",
           position: "left",
-          label: "Notes",
+          label: "📚 Documentation",
         },
-        { to: "/blog", label: "Blog", position: "left" },
+        { 
+          to: "/blog", 
+          label: "✍️ Blog", 
+          position: "left" 
+        },
+        {
+          type: 'dropdown',
+          label: '🔗 Quick Links',
+          position: 'left',
+          items: [
+            {
+              label: '🚀 Getting Started',
+              to: '/docs/intro',
+            },
+            {
+              label: '☁️ AWS Guides',
+              to: '/docs/aws/',
+            },
+            {
+              label: '🐳 Kubernetes',
+              to: '/docs/kubernetes/',
+            },
+            {
+              label: '🏗️ System Design',
+              to: '/docs/systemdesign/',
+            },
+          ],
+        },
         {
           href: "https://ko-fi.com/itsfarhan",
-          label: "Support",
+          label: "☕ Support",
           position: "right",
         },
         {
           href: "https://farhanahmed.pro/home",
-          label: "Portfolio",
+          label: "🌐 Portfolio",
           position: "right",
         },
         {
           href: "https://github.com/itsfarhan",
-          label: "GitHub",
+          label: "🐙 GitHub",
           position: "right",
         },
       ],

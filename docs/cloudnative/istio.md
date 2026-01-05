@@ -5569,9 +5569,9 @@ istioctl dashboard grafana
 
 **What to observe**: Request duration spikes showing 5+ second delays for affected requests.
 
-![Grafana Visualization](/static/img/istio/istio-grafana-9.png)
+![Grafana Visualization](/img/istio/istio-grafana-9.png)
 
-![Grafana Error Visualization](/static/img/istio/istio-grafana-8.png)
+![Grafana Error Visualization](/img/istio/istio-grafana-8.png)
 
 
 ---
@@ -5683,8 +5683,8 @@ istioctl dashboard kiali
 - Click service node for detailed metrics
 - Right sidebar shows approximately 50% success rate, 50% failure rate
  
-![Kiali Error Graph](/static/img/istio/istio-kiali-3.png)
-![Kiali Graph](/static/img/istio/istio-kiali-4.png)
+![Kiali Error Graph](/img/istio/istio-kiali-3.png)
+![Kiali Graph](/img/istio/istio-kiali-4.png)
 ---
 
 ### Cleanup
@@ -7022,7 +7022,7 @@ This means: Service in `default` namespace using `frontend` service account
 
 #### How Certificate Issuance Works (Sidecar)
 
-![Istio Certificate](/static/img/istio/istio-certificate.png)
+![Istio Certificate](/img/istio/istio-certificate.png)
 
 **Step-by-step flow**:
 
@@ -7094,7 +7094,7 @@ This means: Service in `default` namespace using `frontend` service account
 
 #### How Certificate Issuance Works (Ambient)
 
-![Istio Certificate](/static/img/istio/istio-certificate-ambient.png)
+![Istio Certificate](/img/istio/istio-certificate-ambient.png)
 
 **Step-by-step flow**:
 
@@ -7815,7 +7815,7 @@ spec:
 **Both needed**: PeerAuthentication (server) + DestinationRule (client) for complete mTLS
 
 
-![PeerAuthentication vs DestinationRule](/static/img/istio/istio-peer-dest.png)
+![PeerAuthentication vs DestinationRule](/img/istio/istio-peer-dest.png)
 ---
 
 ### Scope Levels
@@ -8079,7 +8079,7 @@ spec:
 - Test PERMISSIVE mode (both work)
 - Test STRICT mode (plain text fails)
 
-![istio mTLS](/static/img/istio/istio-mtls-1.png)
+![istio mTLS](/img/istio/istio-mtls-1.png)
 
 ---
 
@@ -8144,7 +8144,7 @@ istioctl dashboard kiali
 ```bash
 kubectl apply -f strict-mtls.yaml
 ```
-![istio mTLS](/static/img/istio/istio-mtls-2.png)
+![istio mTLS](/img/istio/istio-mtls-2.png)
 
 **Result**: Web-frontend → Customers FAILS (ECONNRESET)
 
