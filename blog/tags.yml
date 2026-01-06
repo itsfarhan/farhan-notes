@@ -52,3 +52,18 @@ devops:
   label: DevOps
   permalink: /tags/devops
   description: Posts about DevOps practices and tools
+
+go:
+  label: Go
+  permalink: /tags/go
+  description: Posts about Go programming language
+
+go-learning:
+  label: Go Learning
+  permalink: /tags/go-learning
+  description: My journey learning Go programming language
+
+golang:
+  label: Golang
+  permalink: /tags/golang
+  description: Posts about Go programming language and development
