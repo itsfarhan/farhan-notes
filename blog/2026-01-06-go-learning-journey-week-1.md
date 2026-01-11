@@ -3,11 +3,12 @@ slug: go-learning-journey-week-1
 title: "Go Learning Journey - Week 1: From Testing to Types"
 authors: [farhan]
 tags: [go, go-learning, golang, programming]
+image: ../static/img/social_card_v3.png
 ---
 
 # Go Learning Journey - Week 1: From Testing to Types
 
-![Go Learning Journey Week 1](/img/week1_golang.png)
+![Go Learning Journey Week 1](../static/img/week1_golang.png)
 
 Hey everyone!
 
