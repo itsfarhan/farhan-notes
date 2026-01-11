@@ -99,14 +99,14 @@ const config: Config = {
       {property: 'og:url', content: 'https://notes.farhanahmed.pro'},
       {property: 'og:title', content: "Farhan's Knowledge Base"},
       {property: 'og:description', content: 'Personal notes, guides, and documentation'},
-      {property: 'og:image', content: 'https://notes.farhanahmed.pro/img/social-card.png'},
+      {property: 'og:image', content: 'https://notes.farhanahmed.pro/img/social_card_v3.png'},
       {property: 'og:image:width', content: '1200'},
       {property: 'og:image:height', content: '630'},
       {name: 'twitter:card', content: 'summary_large_image'},
       {name: 'twitter:url', content: 'https://notes.farhanahmed.pro'},
       {name: 'twitter:title', content: "Farhan's Knowledge Base"},
       {name: 'twitter:description', content: 'Personal notes, guides, and documentation'},
-      {name: 'twitter:image', content: 'https://notes.farhanahmed.pro/img/social-card.png'},
+      {name: 'twitter:image', content: 'https://notes.farhanahmed.pro/img/social_card_v3.png'},
     ],
     colorMode: {
       defaultMode: "dark",
@@ -114,7 +114,7 @@ const config: Config = {
       respectPrefersColorScheme: false,
     },
     // Replace with your project's social card
-    image: "img/social-card.png",
+    image: "img/social_card_v3.png",
     navbar: {
       title: "Farhan's Notes",
       logo: {

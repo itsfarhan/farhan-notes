@@ -3,6 +3,7 @@ slug: welcome-to-my-knowledge-base
 title: Welcome to My Knowledge Base
 authors: [farhan]
 tags: [hello]
+image: https://notes.farhanahmed.pro/img/social_card_v3.png
 ---
 
 # Welcome to My Knowledge Base
