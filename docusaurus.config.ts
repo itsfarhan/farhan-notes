@@ -5,7 +5,7 @@ import type * as Preset from "@docusaurus/preset-classic";
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: "Farhan's Knowledge Base",
+  title: "Farhan's Notes",
   tagline: "Personal notes, guides, and documentation",
   favicon: "img/logo.png",
 
@@ -97,14 +97,14 @@ const config: Config = {
     metadata: [
       {property: 'og:type', content: 'website'},
       {property: 'og:url', content: 'https://notes.farhanahmed.pro'},
-      {property: 'og:title', content: "Farhan's Knowledge Base"},
+      {property: 'og:title', content: "Farhan's Notes"},
       {property: 'og:description', content: 'Personal notes, guides, and documentation'},
       {property: 'og:image', content: 'https://notes.farhanahmed.pro/img/social_card_v3.png'},
       {property: 'og:image:width', content: '1200'},
       {property: 'og:image:height', content: '630'},
       {name: 'twitter:card', content: 'summary_large_image'},
       {name: 'twitter:url', content: 'https://notes.farhanahmed.pro'},
-      {name: 'twitter:title', content: "Farhan's Knowledge Base"},
+      {name: 'twitter:title', content: "Farhan's Notes"},
       {name: 'twitter:description', content: 'Personal notes, guides, and documentation'},
       {name: 'twitter:image', content: 'https://notes.farhanahmed.pro/img/social_card_v3.png'},
     ],
