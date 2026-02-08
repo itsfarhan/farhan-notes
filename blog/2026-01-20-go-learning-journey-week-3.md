@@ -316,7 +316,7 @@ The bookstore project is really taking shape. We've got maps for storage, method
 
 ## 🔗 Code Repository
 
-All my practice code is on GitHub: [go-learning-journey](https://github.com/itsfarhan/go-learning-journey)
+All my practice code is on GitHub: [go-learning-journey](https://github.com/itsfarhan/go-practice)
 
 The bookstore now has a proper `Catalog` type with methods. Much cleaner than before!
 

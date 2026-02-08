@@ -266,7 +266,7 @@ Next week I'm planning to dive deeper into the bookstore project. Maybe maps, mo
 
 ## 🔗 Code Repository
 
-All my practice code is on GitHub: [go-learning-journey](https://github.com/itsfarhan/go-learning-journey)
+All my practice code is on GitHub: [go-learning-journey](https://github.com/itsfarhan/go-practice)
 
 The bookstore is actually starting to look like a real application!
 
