@@ -8,6 +8,8 @@ image: /img/social_card_v3.png
 
 # Go Learning Journey - Week 2: Collections and User Stories
 
+![Go Learning Journey Week 1](../static/img/week2_golang.png)
+
 Hey everyone!
 
 Week 2 of my Go journey is done, and honestly, this week felt different. Instead of just learning syntax, I started thinking like a product developer. Chapters 5 and 6 of "For the Love of Go" took me from single books to entire bookstore catalogs, and the approach was fascinating.
