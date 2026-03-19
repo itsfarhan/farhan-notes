@@ -54,15 +54,12 @@ const config: Config = {
         },
         blog: {
           showReadingTime: true,
+          blogSidebarCount: 'ALL',
+          blogSidebarTitle: 'All posts',
           feedOptions: {
             type: ["rss", "atom"],
             xslt: true,
           },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          // editUrl:
-          //   'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
           onInlineTags: "warn",
           onInlineAuthors: "warn",
           onUntruncatedBlogPosts: "warn",
@@ -174,7 +171,7 @@ const config: Config = {
       ],
     },
     footer: {
-      style: "dark",
+      style: "light",
       links: [],
       copyright: `Built with ❤️ by Farhan Ahmed <a href="https://github.com/itsfarhan" target="_blank">GitHub</a> • <a href="https://linkedin.com/in/itsfarhan" target="_blank">LinkedIn</a> • <a href="https://ko-fi.com/itsfarhan" target="_blank">Support</a>`,
     },

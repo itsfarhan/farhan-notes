@@ -1,170 +1,395 @@
-/* Friendly, Technical, Creative Homepage Styles */
-
-.heroBanner {
-  padding: 4rem 0;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+/* ─── Page wrapper ──────────────────────────────────────────── */
+.pageWrapper {
+  background: var(--bg);
 }
 
-.heroContent {
-  max-width: 900px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 2;
+/* ─── Ambient: amber edge bar ───────────────────────────────── */
+.amberEdge {
+  display: block;
 }
 
-.buttons {
+@media screen and (max-width: 360px) {
+  .amberEdge { display: none; }
+}
+
+/* ─── Ambient: FARHAN watermark ─────────────────────────────── */
+.watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(6rem, 22vw, 18rem);
+  font-weight: 400;
+  color: var(--amber);
+  opacity: 0.045;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Hero ──────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin: 2rem 0 3rem;
+  padding: 0 clamp(1.25rem, 6vw, 6rem);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.heroInner {
+  max-width: 1100px;
+  width: 100%;
+  padding-top: clamp(3rem, 8vw, 5rem);
+  padding-bottom: clamp(3rem, 8vw, 5rem);
+}
+
+/* ─── Name ──────────────────────────────────────────────────── */
+.nameWrap {
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.heroName {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(3.25rem, 13vw, 10.5rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.88;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.amberRule {
+  height: 3px;
+  width: clamp(100px, 28vw, 320px);
+  background: linear-gradient(to right, var(--amber), var(--ifm-color-primary-light) 60%, transparent);
+  border-radius: 2px;
+  margin-top: 1rem;
+}
+
+/* ─── Meta / credentials ────────────────────────────────────── */
+.heroMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 2.75rem;
+}
+
+.credential {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(0.625rem, 1.3vw, 0.8125rem);
+  font-weight: 400;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.credentialDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--amber);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* ─── Proof points ──────────────────────────────────────────── */
+.proofPoints {
+  display: flex;
+  gap: clamp(1.5rem, 5vw, 5rem);
+  margin-bottom: 3rem;
+  padding-bottom: 2.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.proof {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.proofNumber {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.75rem, 4.5vw, 3.5rem);
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.proofLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(0.5625rem, 1vw, 0.6875rem);
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ─── CTAs ──────────────────────────────────────────────────── */
+.heroCta {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
   flex-wrap: wrap;
 }
 
-/* Equal emphasis buttons */
-.buttons .button {
-  min-height: 48px;
-  padding: 0.875rem 2rem;
+.ctaPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 1.5rem;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.875rem;
   font-weight: 600;
-  font-size: 1rem;
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.ctaPrimary:hover {
+  background: var(--ifm-color-primary-light);
+  color: var(--bg);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.ctaPrimary:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 1.5rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--border-hover);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.ctaSecondary:hover {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: var(--amber-faint);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.ctaSecondary:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* ─── Content sections ──────────────────────────────────────── */
+.sections {
   position: relative;
+  z-index: 1;
+  padding: 0 clamp(1.25rem, 6vw, 6rem) clamp(3.5rem, 8vw, 7rem);
+}
+
+.sectionsInner {
+  max-width: 1100px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   overflow: hidden;
 }
 
-.buttons .button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
+/* ─── Section card ──────────────────────────────────────────── */
+.sectionCard {
+  padding: clamp(1.5rem, 2.5vw, 2.5rem);
+  border-right: 1px solid var(--border);
+  transition: background 0.2s ease;
 }
 
-.buttons .button:hover::before {
-  left: 100%;
+.sectionCard:last-child {
+  border-right: none;
 }
 
-.buttons .button:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
+.sectionCard:hover {
+  background: var(--amber-faint);
 }
 
-/* Quick Stats Section */
-.quickStats {
+.cardHeader {
   display: flex;
-  justify-content: center;
-  gap: 3rem;
-  margin-top: 2rem;
-  padding: 2rem 0;
-  border-top: 1px solid var(--ifm-color-emphasis-200);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
 }
 
-.stat {
-  display: flex;
-  flex-direction: column;
+.cardIndex {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.cardTag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--amber-faint);
+  padding: 0.2em 0.6em;
+  border-radius: 2px;
+}
+
+.cardTitle {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.25rem, 2vw, 1.625rem);
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.875rem;
+}
+
+.cardDescription {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem;
+}
+
+.cardCta {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.statNumber {
-  font-size: 2rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--ifm-color-primary), var(--color-secondary));
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  line-height: 1;
-}
-
-.statLabel {
-  font-size: 0.875rem;
-  color: var(--ifm-color-emphasis-600);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8125rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--amber);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  padding: 0.625rem 0;
+  margin: -0.625rem 0;
+  transition: gap 0.2s ease, opacity 0.15s ease;
 }
 
-/* Responsive Design */
-@media screen and (max-width: 768px) {
-  .heroBanner {
-    padding: 3rem 1rem;
+.cardCta:hover {
+  gap: 0.75rem;
+  opacity: 0.8;
+  text-decoration: none;
+  color: var(--amber);
+}
+
+/* ─── Tablet: 2-col (640–900px) ─────────────────────────────── */
+@media screen and (min-width: 640px) and (max-width: 900px) {
+  .sectionsInner {
+    grid-template-columns: repeat(2, 1fr);
   }
-  
-  .buttons {
+
+  .sectionCard:first-child {
+    grid-column: 1 / -1;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sectionCard:nth-child(2) {
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .sectionCard:nth-child(3) {
+    border-right: none;
+    border-bottom: none;
+  }
+}
+
+/* ─── Mobile: single col (<640px) ───────────────────────────── */
+@media screen and (max-width: 639px) {
+  .sectionsInner {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionCard {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sectionCard:last-child {
+    border-bottom: none;
+  }
+}
+
+/* ─── Small mobile (<480px) ─────────────────────────────────── */
+@media screen and (max-width: 479px) {
+  .hero {
+    align-items: flex-start;
+    padding-top: 0;
+  }
+
+  .heroInner {
+    padding-top: 5rem;
+  }
+
+  .credentialDot {
+    display: none;
+  }
+
+  .heroCta {
     flex-direction: column;
-    gap: 0.75rem;
-    margin: 1.5rem 0 2rem;
+    align-items: stretch;
   }
-  
-  .buttons .button {
+
+  .ctaPrimary,
+  .ctaSecondary {
     width: 100%;
-    max-width: 300px;
-    padding: 1rem 2rem;
-  }
-  
-  .quickStats {
-    gap: 2rem;
-    flex-wrap: wrap;
-    padding: 1.5rem 0;
-  }
-  
-  .statNumber {
-    font-size: 1.75rem;
-  }
-  
-  .statLabel {
-    font-size: 0.8125rem;
   }
 }
 
-@media screen and (max-width: 480px) {
-  .quickStats {
-    gap: 1.5rem;
+/* ─── Landscape phone ────────────────────────────────────────── */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .hero {
+    min-height: auto;
+    padding-top: 5rem;
+    padding-bottom: 3rem;
+    align-items: flex-start;
   }
-  
-  .stat {
-    flex: 1;
-    min-width: 0;
+
+  .heroName {
+    font-size: clamp(2.5rem, 10vw, 5rem);
   }
-  
-  .statNumber {
-    font-size: 1.5rem;
-  }
-  
-  .statLabel {
-    font-size: 0.75rem;
-    text-align: center;
+
+  .proofPoints {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
   }
 }
 
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-  .heroBanner {
-    border: 2px solid;
-  }
-  
-  .quickStats {
-    border-top-width: 2px;
-  }
-}
-
-/* Reduced Motion Support */
+/* ─── Reduced motion ────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .buttons .button {
-    transition: none;
-  }
-  
-  .buttons .button:hover {
+  .ctaPrimary:hover,
+  .ctaSecondary:hover {
     transform: none;
   }
-  
-  .buttons .button::before {
-    display: none;
+
+  .cardCta:hover {
+    gap: 0.5rem;
   }
 }
